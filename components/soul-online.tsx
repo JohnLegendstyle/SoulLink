@@ -33,7 +33,7 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
     let active=true,controller:AbortController|null=null,animation=0;
     const encoded:{bytes:Uint8Array<ArrayBuffer>,due:number}[]=[],decoded:{image:ImageBitmap,due:number}[]=[];
     let decoding=false,visible=false,generation=0,lastDue=0;
-    let target=0,received=0,shown=0,lastFrame=0,lastStats=performance.now(),lastPacket=performance.now();
+    let target=0,received=0,shown=0,lastFrame=0,lastStats=performance.now(),lastPacket=performance.now(),measuredRate=120;
     function offline(){generation++;encoded.length=0;for(const f of decoded)f.image.close();decoded.length=0;lastDue=0;if(visible){visible=false;setLive(false);}}
     async function decode(){
       if(decoding)return;decoding=true;
@@ -41,7 +41,7 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
         const frame=encoded.shift()!;const epoch=generation;
         const next=await createImageBitmap(new Blob([frame.bytes],{type:'image/jpeg'}));
         if(!active||epoch!==generation){next.close();continue;}
-        decoded.push({image:next,due:frame.due});if(decoded.length>32)decoded.shift()!.image.close();
+        decoded.push({image:next,due:frame.due});if(decoded.length>64)decoded.shift()!.image.close();
       }}catch{}finally{decoding=false;}
     }
     function draw(){
@@ -80,11 +80,13 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
                 setConnection('Verbunden');
                 // A short bounded playout buffer smooths TCP packet bursts; it
                 // never fabricates frames or grows into a delayed recording.
-                lastDue=Math.min(now+150,Math.max(now+50,lastDue+(configured?1000/configured:0)));
+                const cadence=configured||measuredRate;
+                const delay=Math.min(400,48000/cadence);
+                lastDue=Math.min(now+delay,Math.max(now+Math.min(150,delay/2),lastDue+1000/cadence));
                 encoded.push({bytes:pending.slice(8,size+8) as Uint8Array<ArrayBuffer>,due:lastDue});
-                // Keep enough frames for the 150 ms playout window at 120 FPS.
+                // Keep enough frames for acknowledged network batches at 120 FPS.
                 // A shorter queue discards frames before they become due.
-                if(encoded.length>32)encoded.shift();
+                if(encoded.length>64)encoded.shift();
               }
               else if(kind===0&&performance.now()-lastFrame>8000){offline();setConnection('Warte auf Spielbild aus der App');}
               pending=pending.subarray(size+8);
@@ -99,6 +101,7 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
     document.addEventListener('visibilitychange',visibility);
     const stats=setInterval(()=>{
       const now=performance.now(),seconds=(now-lastStats)/1000;
+      if(received)measuredRate=Math.max(1,received/seconds);
       setFPS({target,received:Math.round(received/seconds),shown:Math.round(shown/seconds)});received=shown=0;lastStats=now;
       if(lastFrame&&now-lastFrame>3000)setConnection('Verbindung wird wiederhergestellt …');
       if(now-lastFrame>8000)offline();
