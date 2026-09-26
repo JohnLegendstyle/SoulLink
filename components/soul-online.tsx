@@ -29,27 +29,30 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
   const canvas=useRef<HTMLCanvasElement>(null);
   const [live,setLive]=useState(false),[fps,setFPS]=useState({target:0,received:0,shown:0});
   useEffect(()=>{
-    let active=true,controller:AbortController|null=null,animation=0,bitmap:ImageBitmap|null=null;
-    let latest:Uint8Array<ArrayBuffer>|null=null,decoding=false,visible=false,generation=0;
+    let active=true,controller:AbortController|null=null,animation=0;
+    const encoded:{bytes:Uint8Array<ArrayBuffer>,due:number}[]=[],decoded:{image:ImageBitmap,due:number}[]=[];
+    let decoding=false,visible=false,generation=0,lastDue=0;
     let target=0,received=0,shown=0,lastFrame=0,lastStats=performance.now();
-    function offline(){generation++;latest=null;bitmap?.close();bitmap=null;if(visible){visible=false;setLive(false);}}
+    function offline(){generation++;encoded.length=0;for(const f of decoded)f.image.close();decoded.length=0;lastDue=0;if(visible){visible=false;setLive(false);}}
     async function decode(){
       if(decoding)return;decoding=true;
-      try{while(active&&latest){
-        const bytes=latest;latest=null;const epoch=generation;
-        const next=await createImageBitmap(new Blob([bytes],{type:'image/jpeg'}));
+      try{while(active&&encoded.length){
+        const frame=encoded.shift()!;const epoch=generation;
+        const next=await createImageBitmap(new Blob([frame.bytes],{type:'image/jpeg'}));
         if(!active||epoch!==generation){next.close();continue;}
-        bitmap?.close();bitmap=next;
+        decoded.push({image:next,due:frame.due});if(decoded.length>12)decoded.shift()!.image.close();
       }}catch{}finally{decoding=false;}
     }
     function draw(){
       if(!active)return;
-      if(bitmap&&canvas.current&&!document.hidden){
-        const next=bitmap;bitmap=null;const surface=canvas.current;
+      let next:ImageBitmap|null=null;
+      while(decoded.length&&decoded[0].due<=performance.now()){next?.close();next=decoded.shift()!.image;}
+      if(next&&canvas.current&&!document.hidden){
+        const surface=canvas.current;
         if(surface.width!==next.width||surface.height!==next.height){surface.width=next.width;surface.height=next.height;}
         surface.getContext('2d',{alpha:false})?.drawImage(next,0,0);next.close();shown++;
         if(!visible){visible=true;setLive(true);}
-      }
+      }else next?.close();
       animation=requestAnimationFrame(draw);
     }
     async function connect(){
@@ -68,7 +71,15 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
               const header=new DataView(pending.buffer,pending.byteOffset,8),size=header.getUint32(0),configured=header.getUint16(4),kind=header.getUint16(6);
               if(size>300000||configured>1000||kind>2)throw Error('Invalid frame');
               if(pending.length<size+8)break;
-              if(kind===1&&size){latest=pending.slice(8,size+8) as Uint8Array<ArrayBuffer>;target=configured;received++;lastFrame=performance.now();}
+              if(kind===1&&size){
+                const now=performance.now();if(target!==configured)lastDue=0;
+                target=configured;received++;lastFrame=now;
+                // A short bounded playout buffer smooths TCP packet bursts; it
+                // never fabricates frames or grows into a delayed recording.
+                lastDue=Math.min(now+150,Math.max(now+50,lastDue+(configured?1000/configured:0)));
+                encoded.push({bytes:pending.slice(8,size+8) as Uint8Array<ArrayBuffer>,due:lastDue});
+                if(encoded.length>12)encoded.shift();
+              }
               else if(kind===0)offline();
               pending=pending.subarray(size+8);
             }
@@ -86,7 +97,7 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
       if(now-lastFrame>3000)offline();
     },1000);
     draw();void connect();
-    return()=>{active=false;controller?.abort();cancelAnimationFrame(animation);clearInterval(stats);document.removeEventListener('visibilitychange',visibility);bitmap?.close();latest=null;};
+    return()=>{active=false;controller?.abort();cancelAnimationFrame(animation);clearInterval(stats);document.removeEventListener('visibilitychange',visibility);for(const f of decoded)f.image.close();decoded.length=0;encoded.length=0;};
   },[access.id,access.readToken,player]);
   return <article className="game-preview"><div className="preview-title"><strong>{player==='John'?'Optimus':'Bee'}</strong><span className={live?'is-live':''}>{live?'● Live · App: '+(fps.target?fps.target+' FPS':'unbegrenzt'):'Nicht am Übertragen'}</span></div><div className="preview-screen"><canvas ref={canvas} style={{display:live?'block':'none',maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} aria-label={`DS-Bildschirme von ${player==='John'?'Optimus':'Bee'}`}/>{!live&&<p>Spiel in der verbundenen App starten.<br/>Die Übertragung ist privat und ohne Ton.</p>}</div><p style={{padding:'8px 16px',fontSize:12,color:'#a4adbd',margin:0}}>Empfangen: {live?fps.received:0} FPS · Angezeigt: {live?fps.shown:0} FPS<br/>Anzeige abhängig von Bildschirm, Browser und Verbindung.</p></article>;
 }

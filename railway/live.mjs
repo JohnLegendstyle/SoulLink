@@ -37,6 +37,9 @@ export function liveRelay({authorize,send,onFrame=()=>{}}){
     const id=url.searchParams.get('id'),a=authorize(req,id);
     if(!a){send(res,401,{error:'Privater Zugang erforderlich.'});return true;}
     if(req.method==='GET'){
+      if(url.searchParams.get('publish')==='1'){
+        send(res,a.role==='read'?403:200,a.role==='read'?{error:'Nur der Spieler darf senden.'}:{ok:true});return true;
+      }
       const role=url.searchParams.get('player');
       if(!['John','Eddie'].includes(role)){send(res,400,{error:'Unbekannter Spieler.'});return true;}
       const c=channel(id+':'+role);

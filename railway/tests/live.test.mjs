@@ -14,6 +14,8 @@ test('live relay authenticates, parses split frames, follows FPS, isolates playe
     assert.equal((await fetch(base+'/api/live?id=room&player=John')).status,401);
     assert.equal((await fetch(base+'/api/live?id=room',{method:'PUT',headers:{Authorization:'Bearer read'}})).status,403);
     assert.equal((await fetch(base+'/api/live?id=room&player=wrong',{headers:{Authorization:'Bearer john'}})).status,400);
+    assert.equal((await fetch(base+'/api/live?id=room&publish=1',{headers:{Authorization:'Bearer read'}})).status,403);
+    assert.equal((await fetch(base+'/api/live?id=room&publish=1',{headers:{Authorization:'Bearer john'}})).status,200);
     const response=await fetch(base+'/api/live?id=room&player=John',{headers:{Authorization:'Bearer read'},signal:abort.signal});
     const reader=response.body.getReader();
     let pending=Buffer.alloc(0);

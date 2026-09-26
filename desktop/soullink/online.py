@@ -94,6 +94,10 @@ class MirrorWorker:
                         report('Bildübertragung ausgeschaltet');self.stop_event.wait(.1);continue
                     if self.connection and time.monotonic()-opened>50:self._disconnect();last=None
                     if not self.connection:
+                        # Some HTTPS proxies withhold a response until the upload
+                        # ends. Authenticate separately, then send without waiting
+                        # for a duplex response on the streaming request.
+                        api(self.access['baseUrl'],endpoint+'&publish=1',token=self.access['token'],timeout=3)
                         if base.scheme=='https': connection=http.client.HTTPSConnection(base.hostname,base.port,timeout=3,context=tls_context())
                         else: connection=http.client.HTTPConnection(base.hostname,base.port,timeout=3)
                         self.connection=connection
@@ -101,8 +105,6 @@ class MirrorWorker:
                         connection.putheader('Authorization','Bearer '+self.access['token'])
                         connection.putheader('Content-Type','application/x-soullink-frames')
                         connection.putheader('Transfer-Encoding','chunked');connection.endheaders()
-                        response=connection.getresponse()
-                        if response.status!=200:raise OSError('Stream rejected')
                         opened=time.monotonic();last_send=opened;last=None
                     if time.monotonic()-last_send>1:
                         send(struct.pack('!IHH',0,0,2));last_send=time.monotonic()
