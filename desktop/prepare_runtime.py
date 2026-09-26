@@ -62,6 +62,8 @@ def main() -> None:
         ('melonDS-1.1.zip','https://github.com/melonDS-emu/melonDS/archive/refs/tags/1.1.zip'),
         ('Randomizer-ZX-4.6.1.zip','https://github.com/Ajarmar/universal-pokemon-randomizer-zx/archive/refs/tags/v4.6.1.zip')):
         if not (sources / filename).exists(): urllib.request.urlretrieve(url,sources / filename)
+    from focus.build_focus import build
+    build(root.parent)
 
 
 if __name__ == "__main__":

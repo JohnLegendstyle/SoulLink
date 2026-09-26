@@ -4,6 +4,8 @@ import os
 import platform
 import shutil
 import subprocess
+import hashlib
+import tomllib
 from pathlib import Path
 from typing import Mapping
 
@@ -32,6 +34,8 @@ DEFAULT_KEYS = {
 
 def qt_key(value: str) -> int:
     value = value.strip().upper()
+    if value.startswith('QT:') and value[3:].isdigit() and 0<=int(value[3:])<=0x1ffffff:
+        return int(value[3:])
     if value in QT_KEYS:
         return QT_KEYS[value]
     if len(value) == 1:
@@ -62,11 +66,16 @@ def write_config(
     volume_percent: int,
     keys: Mapping[str, str],
     save_directory: Path,
+    pixel_filter: bool = False,
+    integer_scaling: bool = False,
+    screen_layout: str = 'focus',
 ) -> Path:
     if not 1 <= scale <= 16:
         raise ValueError("Die Auflösung muss zwischen 1× und 16× liegen.")
     if fps not in (60, 90, 120, 0):
         raise ValueError("FPS muss 60, 90, 120 oder unbegrenzt sein.")
+    if screen_layout not in ('focus','horizontal','vertical'):
+        raise ValueError('Unbekanntes Bildschirmlayout.')
     volume = round(max(0, min(100, volume_percent)) * 256 / 100)
     portable = portable_directory(executable)
     portable.mkdir(parents=True, exist_ok=True)
@@ -98,7 +107,7 @@ HiresCoordinates = true
 
 [Screen]
 UseGL = true
-Filter = true
+Filter = {str(pixel_filter).lower()}
 VSync = {str(fps == 60).lower()}
 VSyncInterval = 1
 
@@ -130,9 +139,10 @@ Enabled = true
 ShowOSD = true
 ScreenAspectTop = 0
 ScreenAspectBot = 0
-IntegerScaling = false
-ScreenSizing = 0
-ScreenLayout = 0
+ScreenFilter = {str(pixel_filter).lower()}
+IntegerScaling = {str(integer_scaling).lower()}
+ScreenSizing = {1 if screen_layout == 'focus' else 0}
+ScreenLayout = {1 if screen_layout == 'vertical' else 2}
 ScreenGap = 0
 ScreenSwap = false
 ScreenRotation = 0
@@ -162,20 +172,49 @@ def _toml_path(path: Path) -> str:
     return str(path.resolve()).replace("\\", "/").replace('"', '\\"')
 
 
-def launch(executable: Path, rom: Path, *, fullscreen: bool = True) -> subprocess.Popen:
+def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str = 'Optimus', request: Path | None = None) -> subprocess.Popen:
     if not rom.is_file():
         raise FileNotFoundError("Die ausgewählte ROM wurde nicht gefunden.")
     command = [str(executable)]
     if fullscreen:
         command.append("--fullscreen")
     command.append(str(rom))
-    return subprocess.Popen(command, cwd=str(executable.parent))
+    env=os.environ.copy()
+    env['SOULLINK_PLAYER']=player
+    if request is not None: env['SOULLINK_REQUEST']=str(request)
+    return subprocess.Popen(command, cwd=str(executable.parent),env=env)
+
+
+def read_runtime_settings(executable: Path) -> dict:
+    """Import explicit native changes after exit; never read/write game saves."""
+    config=tomllib.loads((portable_directory(executable)/'melonDS.toml').read_text())
+    window=config['Instance0']['Window0']
+    scale=int(config['3D']['GL']['ScaleFactor'])
+    fps=round(config.get('TargetFPS',60)) if config.get('LimitFPS',True) else 0
+    volume=round(config['Instance0']['Audio']['Volume']*100/256)
+    if not 1<=scale<=16 or fps not in (0,60,90,120) or not 0<=volume<=100:
+        raise ValueError('Ungültige Emulator-Einstellungen.')
+    keys={}
+    reverse={value:key for key,value in QT_KEYS.items()}
+    for name,value in config['Instance0']['Keyboard'].items():
+        if name in DEFAULT_KEYS:
+            if value in reverse: keys[name]=reverse[value]
+            elif 32<=value<=126: keys[name]=chr(value)
+            elif isinstance(value,int) and value>=0: keys[name]='QT:'+str(value)
+    return {'scale':scale,'fps':fps,'volume':volume,'keys':keys,
+            'pixel_filter':bool(window.get('ScreenFilter',False)),
+            'integer_scaling':bool(window.get('IntegerScaling',False)),
+            'screen_layout':'vertical' if window.get('ScreenLayout')==1 else 'focus' if window.get('ScreenSizing')==1 else 'horizontal'}
 
 
 def copy_emulator(source: Path, destination: Path) -> Path:
     """Optional helper for making an isolated portable emulator copy."""
     if platform.system() == 'Darwin' and source.parent.name == 'MacOS' and source.parents[1].name == 'Contents':
         source = source.parents[2]
+    binary=find_executable(source)
+    fingerprint=hashlib.sha256(binary.read_bytes()).hexdigest()[:12]
+    destination=destination/('build-'+fingerprint)
+    destination.mkdir(parents=True,exist_ok=True)
     if platform.system() == "Darwin" and source.suffix == ".app":
         target = destination / source.name
         if not target.exists():

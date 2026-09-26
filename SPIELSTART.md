@@ -20,6 +20,10 @@ Für eine bestehende Runde: Spiel speichern, **alle melonDS-Fenster schließen**
 
 ## Tasten und Einstellungen
 
+Ab 0.4.0 startet das Spiel in **Focus**: großes Spielbild links, kleiner Touchscreen rechts und eine kompakte Leiste unten. **Bild** öffnet interne 3D-Auflösung, Pixel-Skalierung (Scharf/Weich), ganzzahlige Skalierung, Bildschirmlayout und FPS. **Sound** regelt die Lautstärke; **Tasten** öffnet die Belegung. Änderungen im Spiel werden beim regulären Schließen in den Launcher übernommen. Unter **Mehr** bleiben die erweiterten melonDS-Menüs erreichbar. Der Launcher blendet sich während des Spiels aus und kehrt nach dem Schließen zurück.
+
+**Neue Runde** und der andere Spieler oben schließen das aktuelle Spielfenster erst nach Rückfrage. Vorher unbedingt im Spiel speichern: Der Wechsel speichert euren Fortschritt nicht automatisch. Neue Runden erhalten weiterhin einen eigenen Ordner.
+
 Standardtasten: **X = A/Bestätigen**, **Z = B/Zurück**, **S = DS-X/Menü**, **A = DS-Y**, **Pfeile = Bewegen**, **Return = Start**, **Shift = Select**, **Q/W = L/R**, **Tab = Schnelllauf**, **F11 = Vollbild umschalten**. Unter Grafik · Sound · Tasten lassen sich diese Tasten ändern. Im Spiel kann der untere Bildschirm mit der Maus bedient werden.
 
 60 FPS ist normales Spieltempo. 90/120 FPS und unbegrenzt beschleunigen auch Spiel und Ton; das fügt dem Originalspiel keine neuen Animationsbilder hinzu. Die interne Auflösung macht 3D-Flächen schärfer, nicht die ursprünglichen 2D-Sprites. Bei Leistungseinbrüchen 2× oder 1× wählen. Einstellungen gelten ab dem nächsten Spielstart.
@@ -36,4 +40,4 @@ Der Tracker liest **gespeicherte Spielstände**, keine flüchtigen Kampfdaten. �
 
 ## Plattformen
 
-Windows-Paket: 64-Bit Intel/AMD. Mac-Paket: Apple Silicon (M1 oder neuer). Ein Windows-Build ersetzt keinen Test auf eurem tatsächlichen PC. Der melonDS-Spielkern öffnet ein eigenes Fenster; der moderne Launcher übernimmt Runden, Einstellungen und Tracker.
+Windows-Paket: 64-Bit Intel/AMD. Mac-Paket: Apple Silicon (M1 oder neuer), macOS 14 oder neuer. Ein Windows-Build ersetzt keinen Test auf eurem tatsächlichen PC. Focus ist das angepasste Spielfenster des melonDS-Kerns; der Launcher übernimmt Runden und Tracker.

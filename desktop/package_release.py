@@ -20,7 +20,7 @@ if windows:
 else:
     shutil.copytree(root / 'dist' / 'SoulLink.app',folder / 'SoulLink.app',symlinks=True)
 shutil.copytree(root / 'randomizer' / 'jre',folder / 'Runtime',symlinks=True)
-emulator = root / 'vendor' / 'Emulator'
+emulator = root / 'vendor' / 'FocusEmulator'
 source = next(emulator.rglob('melonDS.exe')).parent if windows else next(emulator.rglob('melonDS.app')).parent
 shutil.copytree(source,folder / 'Emulator',symlinks=True)
 shutil.copytree(root / 'vendor' / 'Quelltexte',folder / 'Quelltexte')

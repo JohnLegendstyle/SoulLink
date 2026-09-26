@@ -18,7 +18,9 @@ def self_test():
     subprocess.run([java_binary(),'-version'],check=True,capture_output=True)
     classpath()
     emulator=install_root()/'Emulator'/('melonDS.app' if platform.system()=='Darwin' else 'melonDS.exe')
-    find_executable(emulator)
+    executable=find_executable(emulator)
+    assert (install_root()/'Emulator'/'focus-version.txt').read_text().strip()=='focus-0.4.0'
+    subprocess.run([str(executable),'--help'],check=True,capture_output=True,timeout=20)
     from soullink.sync import tls_context
     context=tls_context()
     assert context.cert_store_stats()['x509_ca'] > 0
