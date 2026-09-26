@@ -42,7 +42,7 @@ def apply(source: Path):
     replace(qt/'Window.h','    void onOpenFile();','    void initFocus();\n    void focusReturn(const QString& action);\n    void finishFocusRequest();\n    void onOpenFile();')
     replace(window,'    updateMPInterface(MPInterface::GetType());\n}', '    updateMPInterface(MPInterface::GetType());\n    initFocus();\n}')
     replace(window,'    QMainWindow::closeEvent(event);','    focusStopCapture();\n    finishFocusRequest();\n    QMainWindow::closeEvent(event);')
-    replace(window,'    setWindowTitle(title);','''    setWindowTitle("Soul Link · Focus · " + qEnvironmentVariable("SOULLINK_PLAYER", "Optimus"));
+    replace(window,'    setWindowTitle(title);','''    setWindowTitle("Soul Link · Focus · " + (qEnvironmentVariable("SOULLINK_PLAYER", "Optimus")=="Optimus"?QString("Anakin"):QString("Obi-Wan")));
     if (auto* status = findChild<QLabel*>("focusStatus"))
         status->setText(title.replace("melonDS " MELONDS_VERSION, "SoulSilver"));''')
     replace(window,'#include <QApplication>','#include <QApplication>\n#include <QLabel>\nvoid focusStopCapture();')

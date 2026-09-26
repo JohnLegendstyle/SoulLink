@@ -5,6 +5,16 @@ from soullink.melonds import DEFAULT_KEYS, write_config, read_runtime_settings, 
 
 
 class FocusTests(unittest.TestCase):
+    def test_both_native_title_paths_use_jedi_display_names(self):
+        root=Path(__file__).resolve().parents[1]/'focus'
+        for name in ('FocusWindow.inc','apply_focus.py'):
+            lines=[line for line in (root/name).read_text().splitlines() if 'setWindowTitle("Soul Link' in line]
+            self.assertEqual(len(lines),1)
+            self.assertIn('QString("Anakin")',lines[0])
+            self.assertIn('QString("Obi-Wan")',lines[0])
+        text=(root/'FocusWindow.inc').read_text()
+        self.assertIn('button(name=="Optimus"?QString("Anakin"):QString("Obi-Wan")',text)
+
     def test_streaming_can_continue_when_browser_has_focus(self):
         import tomllib
         with tempfile.TemporaryDirectory() as temp:
