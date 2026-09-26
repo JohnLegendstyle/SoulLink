@@ -1,0 +1,17 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import zlib from 'node:zlib';
+const files = {'server.mjs':fs.readFileSync('railway/server.mjs').toString('base64')};
+function walk(dir) {
+  for (const entry of fs.readdirSync(dir,{withFileTypes:true})) {
+    const file=path.join(dir,entry.name);
+    if(entry.isDirectory()) walk(file);
+    else files[path.relative('railway-dist',file).replaceAll('\\','/')]=fs.readFileSync(file).toString('base64');
+  }
+}
+walk('railway-dist/public');
+const encoded=zlib.gzipSync(Buffer.from(JSON.stringify(files))).toString('base64');
+const variables={};
+const chunks=Math.ceil(encoded.length/16000);
+for(let i=0;i<Math.max(chunks,14);i++) variables['SOULLINK_BUNDLE_'+String(i).padStart(3,'0')]=encoded.slice(i*16000,(i+1)*16000);
+process.stdout.write(JSON.stringify(variables));
