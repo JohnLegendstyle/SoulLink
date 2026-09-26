@@ -56,6 +56,7 @@ def build(root: Path):
         prefixes=[subprocess.check_output(['brew','--prefix',p],text=True).strip() for p in deps[:8]]
         prefixes.insert(0,subprocess.check_output(['brew','--prefix'],text=True).strip())
         env['PKG_CONFIG_PATH']=':'.join(str(Path(p)/'lib/pkgconfig') for p in prefixes)
+        env['SOULLINK_FRAMEWORK_PATHS']=':'.join(str(Path(p)/'lib') for p in prefixes)
         run(['cmake','-S',source,'-B',build_dir,'-G','Ninja','-DCMAKE_BUILD_TYPE=Release',
              '-DCMAKE_PREFIX_PATH='+';'.join(prefixes),'-DQT_ADDITIONAL_PACKAGES_PREFIX_PATH='+';'.join(prefixes),
              '-DENABLE_LTO_RELEASE=OFF','-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0'],env=env)

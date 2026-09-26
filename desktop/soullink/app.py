@@ -158,30 +158,49 @@ class SoulLinkApp(tk.Tk):
 
     def _round_ui(self) -> None:
         tab = self.round_tab
-        tab.columnconfigure(1, weight=1)
-        ttk.Label(tab, text="Mit einem Klick zwei neue Spiele", style="Panel.TLabel", font=("Arial", 18, "bold")).grid(row=0, column=0, columnspan=3, sticky="w")
-        ttk.Label(tab, text="Jede Seite bekommt drei neue Starter. Mindestens einer davon ist legendär.", style="Panel.TLabel", foreground=COLORS["muted"]).grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 15))
+        tab.columnconfigure((0,1), weight=1)
+        ttk.Label(tab, text="Eure Runde. Euer Abenteuer.", style="Panel.TLabel", font=("Arial", 22, "bold")).grid(row=0,column=0,columnspan=2,sticky='w',pady=(4,8))
+        ttk.Label(tab,text='Spieler auswählen und in Focus weiterspielen.',style='Panel.TLabel',foreground=COLORS['muted']).grid(row=1,column=0,columnspan=2,sticky='w')
         self.rom_var = tk.StringVar(value=str(self.settings["rom"]))
         self.emu_var = tk.StringVar(value=str(self.settings["emulator"]))
         self.output_var = tk.StringVar(value=str(self.settings["output"]))
-        self._field(tab, 2, "Originale SoulSilver-ROM", self.rom_var, self.pick_rom)
-        self._field(tab, 3, "melonDS", self.emu_var, self.pick_emulator)
-        self._field(tab, 4, "Runden-Ordner", self.output_var, self.pick_output)
         self.adventure_var = tk.BooleanVar(value=bool(self.settings['adventure']))
         self.status_var = tk.StringVar(value="Bereit für eine neue Runde.")
-        self.create_button = ttk.Button(tab, text="Neue randomisierte Runde erstellen", style="Primary.TButton", command=self.create_new_round)
-        self.create_button.grid(row=5, column=0, columnspan=3, sticky="ew", pady=(20, 12))
-        ttk.Label(tab, textvariable=self.status_var, style="Panel.TLabel", foreground=COLORS["green"], wraplength=760).grid(row=6, column=0, columnspan=3, sticky="w", pady=6)
+        self.player_cards=[]
+        for column,(name,character) in enumerate((('Optimus','OPTIMUS PRIME'),('Bee','BUMBLEBEE'))):
+            card=ttk.Frame(tab,padding=22,style='Panel.TFrame')
+            self.player_cards.append(card)
+            card.grid(row=2,column=column,sticky='ew',padx=(0,8) if column==0 else (8,0),pady=(24,12))
+            ttk.Label(card,text=character,style='Panel.TLabel',foreground=COLORS['gold'],font=('Arial',10,'bold')).pack(anchor='w')
+            ttk.Label(card,text=name,style='Panel.TLabel',font=('Arial',28,'bold')).pack(anchor='w',pady=(8,16))
+            ttk.Button(card,text=name+' starten',style='Primary.TButton',command=lambda p=name:self.start_player(p)).pack(fill='x')
+        ttk.Label(tab,textvariable=self.status_var,style='Panel.TLabel',foreground=COLORS['green'],wraplength=760).grid(row=3,column=0,columnspan=2,sticky='w',pady=(4,16))
         actions = ttk.Frame(tab, style="Panel.TFrame")
-        actions.grid(row=7, column=0, columnspan=3, sticky="ew", pady=(20, 0))
+        actions.grid(row=4,column=0,columnspan=2,sticky='ew')
         actions.columnconfigure((0, 1), weight=1)
-        ttk.Button(actions, text="Optimus starten", command=lambda: self.start_player("Optimus")).grid(row=0, column=0, sticky="ew", padx=(0, 7))
-        ttk.Button(actions, text="Bee starten", command=lambda: self.start_player("Bee")).grid(row=0, column=1, sticky="ew", padx=(7, 0))
-        ttk.Button(actions, text="Vorhandene Runde öffnen", command=self.open_round).grid(row=1,column=0,sticky='ew',pady=12,padx=(0,7))
-        ttk.Button(actions, text="Runden-Ordner anzeigen", command=self.show_output).grid(row=1,column=1,sticky='ew',pady=12,padx=(7,0))
-        ttk.Button(actions, text="Optimus Prime & Bumblebee · Figuren aktualisieren", command=self.apply_character_skins).grid(row=2,column=0,columnspan=2,sticky='ew')
-        ttk.Label(tab,text='Neue Runden erhalten einen eigenen Ordner. Eure bisherigen Spielstände bleiben erhalten.\nDie Starter entdeckt ihr erst bei der Auswahl im Spiel.',style='Panel.TLabel',foreground=COLORS['muted']).grid(row=8,column=0,columnspan=3,sticky='w',pady=14)
-        ttk.Checkbutton(tab,text='Auch wilde Pokémon und gegnerische Teams randomisieren',variable=self.adventure_var).grid(row=9,column=0,columnspan=3,sticky='w')
+        self.create_button=ttk.Button(actions,text='+ Neue randomisierte Runde',command=self.create_new_round)
+        self.create_button.grid(row=0,column=0,sticky='ew',padx=(0,7))
+        ttk.Button(actions,text='Vorhandene Runde öffnen',command=self.open_round).grid(row=0,column=1,sticky='ew',padx=(7,0))
+        ttk.Button(actions,text='Runden-Ordner anzeigen',command=self.show_output).grid(row=1,column=0,sticky='ew',padx=(0,7),pady=(10,0))
+        ttk.Button(actions,text='Figuren aktualisieren',command=self.apply_character_skins).grid(row=1,column=1,sticky='ew',padx=(7,0),pady=(10,0))
+        self.setup_panel=ttk.Frame(tab,style='Panel.TFrame')
+        self.setup_panel.grid(row=6,column=0,columnspan=2,sticky='ew',pady=(6,0))
+        self.setup_panel.columnconfigure(1,weight=1)
+        self._field(self.setup_panel,0,'Originale SoulSilver-ROM',self.rom_var,self.pick_rom)
+        self._field(self.setup_panel,1,'Focus / melonDS',self.emu_var,self.pick_emulator)
+        self._field(self.setup_panel,2,'Runden-Ordner',self.output_var,self.pick_output)
+        ttk.Checkbutton(self.setup_panel,text='Auch wilde Pokémon und gegnerische Teams randomisieren',variable=self.adventure_var).grid(row=3,column=0,columnspan=3,sticky='w',pady=(6,0))
+        self.setup_panel.grid_remove()
+        def toggle_setup():
+            if self.setup_panel.winfo_manager():
+                self.setup_panel.grid_remove()
+                for card in self.player_cards: card.grid()
+            else: self.show_setup()
+        ttk.Button(tab,text='Dateien & Vorbereitung',command=toggle_setup).grid(row=5,column=0,columnspan=2,sticky='w',pady=(18,0))
+
+    def show_setup(self) -> None:
+        for card in self.player_cards: card.grid_remove()
+        self.setup_panel.grid()
 
     def _settings_ui(self) -> None:
         tab = self.settings_tab
@@ -261,6 +280,9 @@ class SoulLinkApp(tk.Tk):
         except (OSError,ValueError) as error:
             messagebox.showerror('Einstellungen',str(error)); return
         source, destination = Path(self.rom_var.get()), Path(self.output_var.get())
+        if not self.rom_var.get() or not source.is_file():
+            self.show_setup()
+            messagebox.showinfo('Original-ROM auswählen','Bitte zuerst unter Dateien & Vorbereitung eure eigene deutsche SoulSilver-ROM auswählen.'); return
         mode = 'adventure' if self.adventure_var.get() else 'starters'
         self.creating = True
         self.create_button.state(['disabled'])

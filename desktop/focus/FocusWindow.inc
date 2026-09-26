@@ -14,6 +14,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 
 static const char* focusStyle = R"QSS(
 QMainWindow, QDialog, QMenu, QWidget#focusPopup { background: #101214; color: #eceff1; }
@@ -153,7 +154,7 @@ void MainWindow::initFocus()
     auto* heading=new QLabel("Bild & Auflösung",this);heading->setStyleSheet("font-size:17px;font-weight:600;");visual.second->addWidget(heading);
     visual.second->addWidget(new QLabel("Interne 3D-Auflösung",this));
     auto* resolution=new QComboBox(this);
-    for(int factor : {1,2,3,4,6,8,12,16}) resolution->addItem(QString("%1×  ·  %2 × %3").arg(factor).arg(256*factor).arg(192*factor),factor);
+    for(int factor=1;factor<=16;factor++) resolution->addItem(QString("%1×  ·  %2 × %3").arg(factor).arg(256*factor).arg(192*factor),factor);
     resolution->setCurrentIndex(resolution->findData(globalCfg.GetInt("3D.GL.ScaleFactor")));
     visual.second->addWidget(resolution);
     connect(resolution,QOverload<int>::of(&QComboBox::activated),this,[this,resolution](int index){
@@ -174,7 +175,8 @@ void MainWindow::initFocus()
         int arrangement=index==2?1:2, sizing=index==0?1:0;
         windowCfg.SetInt("ScreenLayout",arrangement);windowCfg.SetInt("ScreenSizing",sizing);
         windowCfg.SetInt("ScreenRotation",0);windowCfg.SetBool("ScreenSwap",false);
-        actScreenLayout[arrangement]->setChecked(true);actScreenSizing[sizing]->setChecked(true);emit screenLayoutChange();});
+        actScreenLayout[arrangement]->setChecked(true);actScreenSizing[sizing]->setChecked(true);
+        actScreenRotation[0]->setChecked(true);actScreenSwap->setChecked(false);emit screenLayoutChange();});
     visual.second->addWidget(new QLabel("FPS / Spieltempo",this));
     auto* speed=new QComboBox(this);
     for(int fps : {60,90,120,0}) speed->addItem(fps?QString::number(fps)+" FPS":"Unbegrenzt",fps);
@@ -186,6 +188,15 @@ void MainWindow::initFocus()
         globalCfg.SetBool("Screen.VSync",fps==60);onUpdateVideoSettings(false);});
     auto* hint=new QLabel("3D-Auflösung schärft 3D-Flächen, nicht 2D-Sprites.\nÜber 60 FPS beschleunigt auch Spiel und Ton.",this);
     hint->setObjectName("focusHint");hint->setWordWrap(true);visual.second->addWidget(hint);
+    connect(visual.first,&QMenu::aboutToShow,this,[this,resolution,filter,integer,layout,speed]{
+        QSignalBlocker blocked(integer);
+        resolution->setCurrentIndex(resolution->findData(globalCfg.GetInt("3D.GL.ScaleFactor")));
+        resolution->setEnabled(globalCfg.GetInt("3D.Renderer")!=renderer3D_Software);
+        filter->setCurrentIndex(windowCfg.GetBool("ScreenFilter")?1:0);
+        integer->setChecked(windowCfg.GetBool("IntegerScaling"));
+        layout->setCurrentIndex(windowCfg.GetInt("ScreenLayout")==1?2:windowCfg.GetInt("ScreenSizing")==0?1:0);
+        speed->setCurrentIndex(speed->findData(emuInstance->doLimitFPS?qRound(emuInstance->targetFPS):0));
+    });
     auto* fullscreen=button("Vollbild",pill);fullscreen->setObjectName("focusFlat");controls->addWidget(fullscreen);
     connect(fullscreen,&QPushButton::clicked,this,&MainWindow::toggleFullscreen);
     auto* more=button("Mehr",pill);more->setObjectName("focusFlat");controls->addWidget(more);

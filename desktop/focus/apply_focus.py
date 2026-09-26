@@ -11,6 +11,8 @@ def replace(path, old, new):
 
 
 def apply(source: Path):
+    replace(source/'tools/mac-libs.rb','$fallback_rpaths = []',
+            '$fallback_rpaths = ENV.fetch("SOULLINK_FRAMEWORK_PATHS", "").split(File::PATH_SEPARATOR)')
     qt=source/'src/frontend/qt_sdl'
     window=qt/'Window.cpp'
     replace(qt/'Window.h','    void onOpenFile();','    void initFocus();\n    void focusReturn(const QString& action);\n    void finishFocusRequest();\n    void onOpenFile();')
