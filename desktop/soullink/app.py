@@ -119,6 +119,7 @@ class SoulLinkApp(tk.Tk):
         game = tk.Menu(menu, tearoff=False)
         game.add_command(label="Neue randomisierte Runde", command=self.create_new_round)
         game.add_command(label="Vorhandene Runde öffnen", command=self.open_round)
+        game.add_command(label="Optimus Prime & Bumblebee anwenden", command=self.apply_character_skins)
         game.add_separator()
         game.add_command(label="Optimus starten", command=lambda: self.start_player("Optimus"))
         game.add_command(label="Bee starten", command=lambda: self.start_player("Bee"))
@@ -173,6 +174,7 @@ class SoulLinkApp(tk.Tk):
         ttk.Button(actions, text="Bee starten", command=lambda: self.start_player("Bee")).grid(row=0, column=1, sticky="ew", padx=(7, 0))
         ttk.Button(actions, text="Vorhandene Runde öffnen", command=self.open_round).grid(row=1,column=0,sticky='ew',pady=12,padx=(0,7))
         ttk.Button(actions, text="Runden-Ordner anzeigen", command=self.show_output).grid(row=1,column=1,sticky='ew',pady=12,padx=(7,0))
+        ttk.Button(actions, text="Optimus Prime & Bumblebee · Figuren aktualisieren", command=self.apply_character_skins).grid(row=2,column=0,columnspan=2,sticky='ew')
         ttk.Label(tab,text='Neue Runden erhalten einen eigenen Ordner. Eure bisherigen Spielstände bleiben erhalten.\nDie Starter entdeckt ihr erst bei der Auswahl im Spiel.',style='Panel.TLabel',foreground=COLORS['muted']).grid(row=8,column=0,columnspan=3,sticky='w',pady=14)
         ttk.Checkbutton(tab,text='Auch wilde Pokémon und gegnerische Teams randomisieren',variable=self.adventure_var).grid(row=9,column=0,columnspan=3,sticky='w')
 
@@ -265,6 +267,31 @@ class SoulLinkApp(tk.Tk):
         except Exception as error:
             messagebox.showerror("Einstellungen", str(error))
 
+    def apply_character_skins(self) -> None:
+        if self.creating: return
+        if not self.packs:
+            messagebox.showinfo('Figuren','Bitte zuerst eure vorhandene Runde öffnen.'); return
+        if any(p.poll() is None for p in self.processes.values()):
+            messagebox.showinfo('Figuren','Bitte zuerst das laufende Spiel schließen.'); return
+        if not messagebox.askokcancel('Optimus Prime & Bumblebee',
+            'Bitte auch separat gestartete melonDS-Fenster schließen.\n\n'
+            'Ersetzt die Lauf- und Rennfiguren in eurer aktuellen Runde. '
+            'Spielstände und Pokémon bleiben unverändert. Die bisherigen ROMs werden gesichert.\n\n'
+            'Kampfporträts und Spezialaktionen bleiben vorerst im Originaldesign.'):
+            return
+        from .skins import apply_skin
+        packs = list(self.packs.values())
+        self.creating = True
+        self.create_button.state(['disabled'])
+        self.status_var.set('Die Spielfiguren werden aktualisiert …')
+        def work() -> None:
+            try:
+                for pack in packs: apply_skin(pack.rom,pack.player)
+                self.events.put(('skins',None))
+            except Exception as error:
+                self.events.put(('error',str(error)))
+        threading.Thread(target=work,daemon=True).start()
+
     def start_player(self, player: str) -> None:
         try:
             pack = self.packs.get(player)
@@ -302,7 +329,7 @@ class SoulLinkApp(tk.Tk):
     def drain_events(self) -> None:
         while not self.events.empty():
             kind,value = self.events.get_nowait()
-            if kind in ('round','error'):
+            if kind in ('round','skins','error'):
                 self.creating = False
                 self.create_button.state(['!disabled'])
             if kind == 'round':
@@ -311,9 +338,11 @@ class SoulLinkApp(tk.Tk):
                 self.settings['manifest'] = str(directory / 'runde.json')
                 self._save()
                 self.status_var.set('Fertig! Optimus und Bee stehen vor der Starter-Auswahl.\n' + directory.name)
+            elif kind == 'skins':
+                self.status_var.set('Figuren aktualisiert: Optimus Prime × Bumblebee. Ihr könnt euren Spielstand fortsetzen.')
             elif kind == 'error':
-                self.status_var.set('Erstellung fehlgeschlagen. Bisherige Runden bleiben verfügbar.')
-                messagebox.showerror('Neue Runde',value)
+                self.status_var.set('Vorgang fehlgeschlagen. Eure Spielstände wurden nicht zurückgesetzt.')
+                messagebox.showerror('Soul Link',value)
             elif kind == 'sync': self.sync_status.set(value)
         self.after(100,self.drain_events)
 
@@ -338,7 +367,7 @@ class SoulLinkApp(tk.Tk):
 
     def close(self) -> None:
         if self.creating:
-            messagebox.showinfo('Bitte kurz warten','Die neue Runde wird noch erstellt.'); return
+            messagebox.showinfo('Bitte kurz warten','Die Runde wird noch bearbeitet.'); return
         self.stop_sync()
         self.destroy()
 

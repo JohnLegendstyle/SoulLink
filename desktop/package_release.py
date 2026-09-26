@@ -4,8 +4,10 @@ import shutil
 import platform
 import subprocess
 import zipfile
+import sys
 
 root = Path(__file__).resolve().parent
+subprocess.run([sys.executable,'-m','unittest','discover','-s','tests','-v'],cwd=root,check=True)
 windows = platform.system() == 'Windows'
 label = 'Windows-x64' if windows else 'macOS-' + platform.machine()
 release = root / 'release'
@@ -22,6 +24,10 @@ emulator = root / 'vendor' / 'Emulator'
 source = next(emulator.rglob('melonDS.exe')).parent if windows else next(emulator.rglob('melonDS.app')).parent
 shutil.copytree(source,folder / 'Emulator',symlinks=True)
 shutil.copytree(root / 'vendor' / 'Quelltexte',folder / 'Quelltexte')
+# Ship the matching source of the GPL Python library alongside frozen binaries.
+subprocess.run([sys.executable,'-m','pip','download','--no-deps',
+                '--no-binary=:all:','ndspy==4.2.0',
+                '--dest',str(folder / 'Quelltexte')],check=True)
 for filename in ('SPIELSTART.md','THIRD_PARTY_NOTICES.md','LICENSE'):
     shutil.copy2(root.parent / filename,folder / filename)
 archive = release / (folder.name + '.zip')

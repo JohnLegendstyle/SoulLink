@@ -110,6 +110,8 @@ def create_round(
         rom = player_dir / f"SoulSilver_{player}.nds"
         seed = secrets.randbits(63)
         starters = randomize(original_rom, rom, seed, mode)
+        from .skins import apply_skin
+        apply_skin(rom, player, backup=False)
         template = checkpoints / f"{trainer}.sav"
         save = player_dir / f"SoulSilver_{player}.sav"
         shutil.copy2(template, save)

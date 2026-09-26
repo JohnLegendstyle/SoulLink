@@ -8,8 +8,11 @@ def self_test():
     from soullink.randomizer import runtime_root, install_root, java_binary, classpath
     from soullink.save_reader import read_save
     from soullink.melonds import find_executable
+    from soullink.skins import load_skin
+    import ndspy.texture
     gui=tk.Tk();gui.withdraw();gui.update();gui.destroy()
     for name in ('Optimus','Bee'):
+        load_skin(name)
         state=read_save(runtime_root()/'checkpoints'/f'{name}.sav')
         assert state.trainer==name and state.gender==0 and not state.party
     subprocess.run([java_binary(),'-version'],check=True,capture_output=True)
