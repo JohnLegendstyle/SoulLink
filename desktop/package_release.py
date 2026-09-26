@@ -32,7 +32,12 @@ for filename in ('SPIELSTART.md','THIRD_PARTY_NOTICES.md','LICENSE'):
     shutil.copy2(root.parent / filename,folder / filename)
 archive = release / (folder.name + '.zip')
 executable=folder/'SoulLink.exe' if windows else folder/'SoulLink.app'/'Contents'/'MacOS'/'SoulLink'
-subprocess.run([str(executable),'--self-test'],check=True,timeout=60)
+try:
+    subprocess.run([str(executable),'--self-test'],check=True,timeout=60)
+except subprocess.SubprocessError:
+    report=Path('soullink-self-test-error.txt')
+    if report.exists(): print(report.read_text(),flush=True)
+    raise
 if windows:
     shutil.make_archive(str(archive.with_suffix('')),'zip',release,folder.name)
 else:

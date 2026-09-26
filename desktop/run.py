@@ -20,7 +20,9 @@ def self_test():
     emulator=install_root()/'Emulator'/('melonDS.app' if platform.system()=='Darwin' else 'melonDS.exe')
     executable=find_executable(emulator)
     assert (install_root()/'Emulator'/'focus-version.txt').read_text().strip()=='focus-0.4.0'
-    subprocess.run([str(executable),'--help'],check=True,capture_output=True,timeout=20)
+    native=subprocess.run([str(executable),'--help'],capture_output=True,text=True,timeout=20)
+    if native.returncode:
+        raise RuntimeError(f'Emulator self-test failed ({native.returncode}): {native.stdout}\n{native.stderr}')
     from soullink.sync import tls_context
     context=tls_context()
     assert context.cert_store_stats()['x509_ca'] > 0
