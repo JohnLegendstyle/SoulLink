@@ -193,7 +193,9 @@ def _battle(files,skin,back=False):
     frames=skin['back' if back else 'front']
     # Bitmap picture: two 80x80 poses interleaved as a 160x80 raster.
     wide=b''.join(frames[0][y*40:(y+1)*40]+frames[1][y*40:(y+1)*40] for y in range(80))
-    p=bytearray(pal);p[40:72]=palette_bytes(skin)
+    # Some animated trainers (e.g. the Castle Valet) select palette bank 1.
+    # Populate every bank so no pose falls back to the previous trainer colors.
+    p=bytearray(pal);p[40:552]=palette_bytes(skin)*16
     tiles=_sprite_tiles(cells,frames,len(pixels)-48)
     return (pixels[:48]+tiles,bytes(p),cells,anim,picture[:48]+_dp_cipher(wide))
 

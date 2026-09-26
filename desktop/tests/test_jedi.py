@@ -78,6 +78,18 @@ class JediTests(unittest.TestCase):
         frame=bytes([0x21])*3200
         self.assertEqual(_sprite_tiles(cells,[frame,frame],32),bytes([0x21])*32)
 
+    def test_battle_palette_covers_every_animation_bank(self):
+        from soullink.jedi import _battle,palette_bytes
+        skin=load_character(PLAYERS['Optimus'])
+        pixels=b'RGCN'+bytes(76)
+        palette=b'RLCN'+bytes(548)
+        picture=b'RGCN'+bytes(6444)
+        with patch('soullink.jedi._sprite_tiles',return_value=bytes(32)):
+            result=_battle((pixels,palette,b'cells',b'animation',picture),skin)
+        self.assertEqual(len(result[1]),len(palette))
+        for bank in range(16):
+            self.assertEqual(result[1][40+bank*32:72+bank*32],palette_bytes(skin))
+
     def test_graphics_patch_retains_cloud_identity_and_save(self):
         with tempfile.TemporaryDirectory() as directory:
             rom=Path(directory)/'round.nds';rom.write_bytes(b'old graphics')
