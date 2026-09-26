@@ -3,6 +3,7 @@ from pathlib import Path
 import shutil
 import platform
 import subprocess
+import zipfile
 
 root = Path(__file__).resolve().parent
 windows = platform.system() == 'Windows'
@@ -31,3 +32,8 @@ if windows:
 else:
     subprocess.run(['ditto','-c','-k','--sequesterRsrc','--keepParent',str(folder),str(archive)],check=True)
 print(archive)
+if not windows:
+    with zipfile.ZipFile(release / 'SoulLink-Startspielstaende.zip','w',zipfile.ZIP_DEFLATED) as zipped:
+        for name in ('Optimus','Bee'):
+            zipped.write(root/'randomizer'/'checkpoints'/(name+'.sav'),name+'/'+name+'.sav')
+        zipped.write(root.parent/'SPIELSTART.md','SPIELSTART.md')
