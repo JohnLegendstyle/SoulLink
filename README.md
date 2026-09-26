@@ -27,6 +27,8 @@ Die GitHub Action baut Windows x64 und macOS Apple Silicon auf eigenen Systemen 
 
 ## Tracker
 
+Version 0.5 adds password-protected website accounts (John/Eddie), one-time browser-confirmed device pairing, automatic saved-team sync and private DS-only previews (up to 4 fps, no audio). The server requires `SOULLINK_PASSWORD_HASH` as `salt:scrypt(password,salt,32).hex`; never commit passwords or grants. HTTPS cookies are HttpOnly and SameSite=Lax. `SOULLINK_LOCAL_TEST=1` is only for loopback integration tests. Account room keys are encrypted in SQLite; existing rooms remain intact. Preview frames are bounded, memory-only and expire after six seconds. Tests: `node --test railway/tests/online.test.mjs`.
+
 `railway/server.mjs`: Node 24 mit SQLite, Bearer-Rundenschlüsseln und persistentem Volume unter `/data`. Die statische React-Seite wird mit `node node_modules/vite/bin/vite.js build --config railway/vite.config.ts` gebaut. `DATA_DIR=/data`, `PUBLIC_DIR=/app/public` und `PORT` konfigurieren den Server. Bestehende interne Rollen John/Eddie bleiben aus Kompatibilitätsgründen erhalten; die sichtbaren Namen sind Optimus/Bee.
 
 Die Desktop-App liest gespeicherte `.sav`-Dateien, keinen laufenden Arbeitsspeicher. K. o.-Erkennung und Paarbildung sind dadurch auf gespeicherte Zustände beschränkt. Regeln und Grenzen stehen in SPIELSTART.md. Verbindungsdateien enthalten private Schlüssel und werden niemals in Releases veröffentlicht.

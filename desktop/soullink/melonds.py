@@ -172,7 +172,7 @@ def _toml_path(path: Path) -> str:
     return str(path.resolve()).replace("\\", "/").replace('"', '\\"')
 
 
-def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str = 'Optimus', request: Path | None = None) -> subprocess.Popen:
+def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str = 'Optimus', request: Path | None = None, mirror: Path | None = None, website: str = '') -> subprocess.Popen:
     if not rom.is_file():
         raise FileNotFoundError("Die ausgewählte ROM wurde nicht gefunden.")
     command = [str(executable)]
@@ -182,6 +182,8 @@ def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str 
     env=os.environ.copy()
     env['SOULLINK_PLAYER']=player
     if request is not None: env['SOULLINK_REQUEST']=str(request)
+    if mirror is not None: env['SOULLINK_MIRROR']=str(mirror)
+    if website: env['SOULLINK_WEBSITE']=website
     return subprocess.Popen(command, cwd=str(executable.parent),env=env)
 
 

@@ -34,7 +34,11 @@ Standardtasten: **X = A/Bestätigen**, **Z = B/Zurück**, **S = DS-X/Menü**, **
 
 https://soullink-web-production.up.railway.app
 
-Eine gemeinsame Tracker-Runde erstellen, je eine Verbindungsdatei für Optimus und Bee herunterladen und die passende Datei im Reiter Gemeinsamer Tracker wählen. Den eigenen `.sav` auswählen und die Synchronisierung starten. Verbindungsdateien enthalten persönliche Rundenschlüssel und gehören nicht auf GitHub.
+Website mit John (Optimus) oder Eddie (Bee) und eurem vereinbarten Passwort öffnen. Einer erstellt die gemeinsame Website-Runde; der andere findet nach der Anmeldung dieselbe Runde. In der App im Reiter Gemeinsamer Tracker einmal „Website verbinden“ anklicken und den eigenen Spieler im Browser bestätigen. Danach verbindet sich die App beim Start automatisch; Verbindungsdateien müssen nicht mehr heruntergeladen werden. Die App speichert ihren privaten Zugang nur lokal. Das Website-Passwort ist nicht im Download oder GitHub-Code enthalten.
+
+Die Bildvorschau zeigt ausschließlich die beiden DS-Bildschirme, niemals euren Desktop. Bis zu vier Bilder pro Sekunde, ohne Ton und ohne Fernsteuerung. Im Spielfenster lässt sie sich mit „Vorschau an/aus“ umschalten; die Auswahl bleibt beim Beenden erhalten. Es gibt keine Aufzeichnung: Der Server hält nur das neueste Bild je Spieler im Arbeitsspeicher und verwirft es nach wenigen Sekunden ohne neue Übertragung. Die Vorschau kann abhängig von Rechner und Internetverbindung langsamer sein. Das eigentliche Spiel läuft lokal weiter.
+
+Bei einer neuen randomisierten Runde wird die alte Website-Verknüpfung vorsichtshalber gelöst, damit Fänge und Verluste nicht mit der alten Runde vermischt werden. Eine neue Website-Runde anlegen und beide Apps erneut bestätigen. Alte Spielstände und Website-Runden werden nicht gelöscht.
 
 Der Tracker liest **gespeicherte Spielstände**, keine flüchtigen Kampfdaten. Änderungen erscheinen nach dem Speichern. Ein K. o. wird nur erkannt, wenn mit 0 KP gespeichert wurde. Paare entstehen nach der Reihenfolge erstmals gespeicherter Fänge. Gesperrte Partner werden im Tracker und in der App angezeigt; ihr müsst eure Soul-Link-Regel selbst im Spiel einhalten.
 

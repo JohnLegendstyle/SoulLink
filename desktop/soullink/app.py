@@ -16,6 +16,7 @@ from . import __version__
 from .melonds import DEFAULT_KEYS, copy_emulator, find_executable, launch, write_config, qt_key, read_runtime_settings
 from .randomizer import PlayerPack, create_round, runtime_root, load_round, install_root
 from .sync import SyncWorker
+from .online import WEBSITE, MirrorWorker, pairing, browser_url
 
 
 COLORS = {
@@ -47,6 +48,8 @@ class SoulLinkApp(tk.Tk):
         self.settings = self._load()
         self.packs: dict[str, PlayerPack] = {}
         self.sync_worker: SyncWorker | None = None
+        self.mirror_worker = None
+        self.pair_stop = threading.Event()
         self.processes = {}
         self.runtime = {}
         self.creating = False
@@ -63,6 +66,7 @@ class SoulLinkApp(tk.Tk):
                 self.status_var.set('Letzte Runde geladen. Ihr könnt weiterspielen.')
             except (OSError, ValueError, KeyError):
                 self.status_var.set('Letzte Runde nicht gefunden. Bitte vorhandene Runde öffnen.')
+        if self.connection_var.get() and self.save_var.get(): self.after(500,self.start_sync)
 
     def _load(self) -> dict[str, object]:
         defaults: dict[str, object] = {
@@ -70,6 +74,7 @@ class SoulLinkApp(tk.Tk):
             "scale": 4, "fps": 60, "volume": 80, "fullscreen": True, "player": "Optimus",
             "keys": dict(DEFAULT_KEYS), "connection": "", "save": "",
             "adventure": True, "pixel_filter": False, "integer_scaling": False, "screen_layout": "focus",
+            "mirror": True,
         }
         try:
             loaded = json.loads(self.state_file.read_text(encoding="utf-8"))
@@ -92,6 +97,7 @@ class SoulLinkApp(tk.Tk):
             "pixel_filter": self.filter_var.get() == 'Weich',
             "integer_scaling": bool(self.integer_var.get()),
             "screen_layout": {'Focus':'focus','Nebeneinander':'horizontal','Untereinander':'vertical'}[self.layout_var.get()],
+            "mirror": bool(self.mirror_var.get()),
         })
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         self.state_file.write_text(json.dumps(self.settings, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -248,7 +254,7 @@ class SoulLinkApp(tk.Tk):
         self.connection_var = tk.StringVar(value=str(self.settings["connection"]))
         self.save_var = tk.StringVar(value=str(self.settings["save"]))
         self.player_var = tk.StringVar(value=str(self.settings["player"]))
-        self._field(tab, 0, "Verbindungsdatei", self.connection_var, lambda: self.connection_var.set(filedialog.askopenfilename(filetypes=[("Soul Link", "*.json")]) or self.connection_var.get()))
+        ttk.Button(tab,text='Website verbinden · einmal im Browser bestätigen',style='Primary.TButton',command=self.connect_website).grid(row=0,column=0,columnspan=3,sticky='ew',pady=(0,12))
         self._field(tab, 1, "Spielstand", self.save_var, lambda: self.save_var.set(filedialog.askopenfilename(filetypes=[("Nintendo DS Save", "*.sav")]) or self.save_var.get()))
         ttk.Label(tab, text="Spieler", style="Panel.TLabel").grid(row=2, column=0, sticky="w", pady=8)
         ttk.Label(tab, text='Spieler wird aus der Verbindungsdatei erkannt.', style='Panel.TLabel').grid(row=2,column=1,sticky='w',padx=12)
@@ -256,8 +262,37 @@ class SoulLinkApp(tk.Tk):
         ttk.Button(tab, text="Spielstand-Synchronisierung starten", style="Primary.TButton", command=self.start_sync).grid(row=3, column=0, columnspan=3, sticky="ew", pady=(22, 10))
         ttk.Button(tab, text="Verbindung stoppen", command=self.stop_sync).grid(row=4, column=0, columnspan=3, sticky="ew")
         ttk.Label(tab, textvariable=self.sync_status, style="Panel.TLabel", foreground=COLORS["green"], wraplength=760).grid(row=5, column=0, columnspan=3, sticky="w", pady=15)
-        ttk.Label(tab,text='Der Tracker aktualisiert sich nach dem Speichern im Spiel. K. o. wird nur erkannt,\nwenn mit 0 KP gespeichert wurde. Partner-Sperren werden angezeigt;\ndie App entfernt keine Pokémon automatisch aus eurem Spiel.',style='Panel.TLabel',foreground=COLORS['muted']).grid(row=6,column=0,columnspan=3,sticky='w',pady=16)
-        ttk.Button(tab,text='Gemeinsamen Tracker öffnen',command=lambda:webbrowser.open('https://soullink-web-production.up.railway.app')).grid(row=7,column=0,columnspan=3,sticky='ew')
+        self.mirror_var=tk.BooleanVar(value=bool(self.settings['mirror']))
+        ttk.Checkbutton(tab,text='DS-Spielbild privat auf der Website zeigen (bis 4 Bilder/s, ohne Ton)',variable=self.mirror_var,command=self.save_mirror_preference).grid(row=6,column=0,columnspan=3,sticky='w',pady=12)
+        self.mirror_status=tk.StringVar(value='Nur das Spielbild wird übertragen, niemals der Desktop.')
+        ttk.Label(tab,textvariable=self.mirror_status,style='Panel.TLabel',wraplength=750).grid(row=7,column=0,columnspan=3,sticky='w')
+        ttk.Label(tab,text='Nach der Bestätigung verbindet sich die App automatisch. Teamdaten folgen nach\ndem Speichern im Spiel; K. o. nur bei gespeichertem Stand mit 0 KP.\nFür eine neue gemeinsame Spielrunde bitte auch eine neue Website-Runde verbinden.',style='Panel.TLabel',foreground=COLORS['muted']).grid(row=8,column=0,columnspan=3,sticky='w',pady=16)
+        ttk.Button(tab,text='Gemeinsamen Tracker öffnen',command=self.open_website).grid(row=9,column=0,columnspan=3,sticky='ew')
+
+    def connect_website(self):
+        self.pair_stop.set();self.pair_stop=threading.Event()
+        threading.Thread(target=pairing,args=(lambda url:self.events.put(('open-web',url)),
+            lambda access:self.events.put(('paired',access)),lambda text:self.events.put(('sync',text)),self.pair_stop),daemon=True).start()
+        self.sync_status.set('Website wird geöffnet …')
+
+    def online_access(self):
+        if not self.connection_var.get(): return None
+        try:
+            data=json.loads(Path(self.connection_var.get()).read_text())
+            browser_url(data)
+            return data
+        except (OSError,ValueError,KeyError): return None
+
+    def open_website(self):
+        access=self.online_access()
+        webbrowser.open(browser_url(access) if access else WEBSITE)
+
+    def save_mirror_preference(self):
+        self._save()
+        if self.mirror_worker:
+            flag=self.mirror_worker.frame.with_name(self.mirror_worker.frame.name+'.enabled')
+            if self.mirror_var.get(): flag.touch()
+            else: flag.unlink(missing_ok=True)
 
     def pick_rom(self) -> None:
         value = filedialog.askopenfilename(filetypes=[("Nintendo DS ROM", "*.nds")])
@@ -351,18 +386,38 @@ class SoulLinkApp(tk.Tk):
                          integer_scaling=bool(self.integer_var.get()),screen_layout=str(self.settings['screen_layout']))
             request=config_root()/'requests'/(uuid.uuid4().hex+'.json')
             request.parent.mkdir(parents=True,exist_ok=True)
-            self.processes[player] = launch(executable, pack.rom, fullscreen=bool(self.fullscreen_var.get()),player=player,request=request)
+            self.stop_sync()
+            access=self.online_access()
+            expected='John' if player=='Optimus' else 'Eddie'
+            if access and access.get('player')!=expected: access=None
+            mirror=request.with_suffix('.jpg') if access else None
+            if mirror and self.mirror_var.get(): mirror.with_name(mirror.name+'.enabled').touch()
+            self.processes[player] = launch(executable, pack.rom, fullscreen=bool(self.fullscreen_var.get()),player=player,request=request,
+                                           mirror=mirror,website=browser_url(access) if access else '')
             self.runtime[player]=(executable,request)
             self.save_var.set(str(pack.save))
             self._save()
+            if access:
+                self.start_sync()
+                self.mirror_worker=MirrorWorker(access,mirror,lambda text:self.events.put(('mirror',text)))
+                self.mirror_worker.start()
+            else: self.sync_status.set('Für diesen Spieler bitte einmal Website verbinden.')
             self.withdraw()
         except Exception as error:
             messagebox.showerror("Spiel starten", str(error))
 
     def start_sync(self) -> None:
         try:
-            self.stop_sync()
+            if self.sync_worker: self.sync_worker.stop()
+            self.sync_worker=None
             self._save()
+            if not self.connection_var.get() or not self.save_var.get():
+                self.sync_status.set('Bitte zuerst Website verbinden und euer Spiel starten.');return
+            access=self.online_access()
+            if access:
+                expected='Optimus' if access.get('player')=='John' else 'Bee'
+                if expected not in self.packs or Path(self.save_var.get()).resolve()!=self.packs[expected].save.resolve():
+                    self.sync_status.set('Diese Website-Verbindung gehört zum anderen Spieler.');return
             self.sync_worker = SyncWorker(Path(self.connection_var.get()), Path(self.save_var.get()), lambda text: self.events.put(('sync',text)))
             self.sync_worker.start()
             self.sync_status.set("Verbindung wird aufgebaut …")
@@ -373,6 +428,10 @@ class SoulLinkApp(tk.Tk):
         for player,(executable,request) in list(self.runtime.items()):
             process=self.processes[player]
             if process.poll() is None: continue
+            if self.mirror_worker:
+                flag=self.mirror_worker.frame.with_name(self.mirror_worker.frame.name+'.enabled')
+                self.mirror_var.set(flag.exists())
+                self.mirror_worker.stop();self.mirror_worker=None
             del self.runtime[player]
             try:
                 values=read_runtime_settings(executable)
@@ -402,6 +461,8 @@ class SoulLinkApp(tk.Tk):
                 directory,packs = value
                 self.packs = {p.player:p for p in packs}
                 self.settings['manifest'] = str(directory / 'runde.json')
+                self.stop_sync()
+                self.connection_var.set('')
                 self._save()
                 self.status_var.set('Fertig! Optimus und Bee stehen vor der Starter-Auswahl.\n' + directory.name)
             elif kind == 'skins':
@@ -410,6 +471,19 @@ class SoulLinkApp(tk.Tk):
                 self.status_var.set('Vorgang fehlgeschlagen. Eure Spielstände wurden nicht zurückgesetzt.')
                 messagebox.showerror('Soul Link',value)
             elif kind == 'sync': self.sync_status.set(value)
+            elif kind == 'mirror': self.mirror_status.set(value)
+            elif kind == 'open-web': webbrowser.open(value)
+            elif kind == 'paired':
+                self.stop_sync()
+                connection=config_root()/'website-connection.json'
+                connection.parent.mkdir(parents=True,exist_ok=True)
+                connection.write_text(json.dumps(value),encoding='utf-8')
+                if os.name!='nt': connection.chmod(0o600)
+                self.connection_var.set(str(connection))
+                player='Optimus' if value['player']=='John' else 'Bee'
+                if player in self.packs: self.save_var.set(str(self.packs[player].save))
+                self._save();self.start_sync()
+                self.sync_status.set(f'{player} verbunden. Beim nächsten Spielstart ist auch die Bildvorschau bereit.')
         self.after(100,self.drain_events)
 
     def open_round(self) -> None:
@@ -420,6 +494,8 @@ class SoulLinkApp(tk.Tk):
         try:
             self.packs = {p.player:p for p in load_round(Path(chosen))}
             self.settings['manifest'] = chosen
+            self.stop_sync()
+            self.connection_var.set('')
             self._save()
             self.status_var.set('Runde geladen. Ihr könnt weiterspielen.')
         except (OSError,ValueError,KeyError,TypeError) as error:
@@ -435,9 +511,12 @@ class SoulLinkApp(tk.Tk):
         if self.creating:
             messagebox.showinfo('Bitte kurz warten','Die Runde wird noch bearbeitet.'); return
         self.stop_sync()
+        self.pair_stop.set()
         self.destroy()
 
     def stop_sync(self) -> None:
+        if self.mirror_worker:
+            self.mirror_worker.stop();self.mirror_worker=None
         if self.sync_worker:
             self.sync_worker.stop()
             self.sync_worker = None

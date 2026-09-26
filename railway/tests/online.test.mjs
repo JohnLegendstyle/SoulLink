@@ -1,0 +1,60 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {scryptSync} from 'node:crypto';
+import {mkdtempSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import path from 'node:path';
+
+test('private login, shared room, pairing, scopes, preview expiry and persistence',async()=>{
+  const directory=mkdtempSync(path.join(tmpdir(),'soullink-online-test-'));
+  const password='test-only-focus',salt='test-salt';
+  const env={...process.env,DATA_DIR:directory,PUBLIC_DIR:path.resolve('railway-dist/public'),PORT:'0',SOULLINK_LOCAL_TEST:'1',SOULLINK_PASSWORD_HASH:salt+':'+scryptSync(password,salt,32).toString('hex')};
+  let child,base;
+  async function start(){
+    child=spawn(process.execPath,['railway/server.mjs'],{env,stdio:['ignore','pipe','pipe']});
+    let output='';child.stderr.on('data',b=>output+=b);
+    await new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error(output||'Server timeout')),5000);child.stdout.on('data',b=>{const match=String(b).match(/SoulLink ready (\d+)/);if(match){base='http://127.0.0.1:'+match[1];clearTimeout(timeout);resolve();}});child.once('exit',code=>{clearTimeout(timeout);reject(Error('Server exited '+code+output));});});
+  }
+  async function stop(){if(child.exitCode!==null)return;await new Promise(resolve=>{child.once('exit',resolve);child.kill('SIGTERM');});}
+  async function request(route,{method='GET',data,cookie,token,type}={}){
+    const headers={};if(cookie)headers.Cookie=cookie;if(token)headers.Authorization='Bearer '+token;
+    let payload;if(data!==undefined){headers['Content-Type']=type||'application/json';payload=type?data:JSON.stringify(data);}
+    return fetch(base+route,{method,headers,body:payload});
+  }
+  async function login(username){const r=await request('/api/login',{method:'POST',data:{username,password}});assert.equal(r.status,200);assert.match(r.headers.get('set-cookie'),/HttpOnly/);return r.headers.get('set-cookie').split(';')[0];}
+  try{
+    await start();
+    assert.match(await (await request('/')).text(),/Bitte anmelden/);
+    assert.equal((await request('/api/account')).status,401);
+    assert.equal((await request('/api/login',{method:'POST',data:{username:'John',password:'wrong'}})).status,401);
+    assert.equal((await request('/api/login',{method:'POST',data:{username:'Intruder',password}})).status,401);
+    let john=await login('John'),eddie=await login('Eddie');
+    const room=await (await request('/api/room',{method:'POST',cookie:john,data:{}})).json();
+    assert.ok(room.John);assert.equal(room.Eddie,undefined);
+    const bee=(await (await request('/api/account',{cookie:eddie})).json()).access;
+    assert.equal(bee.id,room.id);assert.ok(bee.Eddie);assert.equal(bee.John,undefined);
+    const grant=await (await request('/api/pair',{method:'POST',data:{}})).json();
+    assert.equal((await request('/api/pair?id='+grant.id,{token:room.readToken})).status,401);
+    assert.equal((await request('/api/pair/approve',{method:'POST',token:room.John,data:{deviceId:grant.id,roomId:room.id,readToken:room.readToken}})).status,401);
+    assert.equal((await request('/api/pair/approve',{method:'POST',cookie:eddie,token:room.John,data:{deviceId:grant.id,roomId:room.id,readToken:room.readToken}})).status,401);
+    const approval=await request('/api/pair/approve',{method:'POST',cookie:john,token:room.John,data:{deviceId:grant.id,roomId:room.id,readToken:room.readToken}});assert.equal(approval.status,200);
+    const paired=await (await request('/api/pair?id='+grant.id,{token:grant.secret})).json();assert.equal(paired.access.token,room.John);assert.equal(paired.status,'approved');
+    assert.equal((await request('/api/pair/approve',{method:'POST',cookie:john,token:room.John,data:{deviceId:grant.id,roomId:room.id,readToken:room.readToken}})).status,409);
+    const frame='/api/frame?id='+room.id;
+    const jpeg=Buffer.from([255,216,255,217]);
+    assert.equal((await request(frame+'&player=John')).status,401);
+    assert.equal((await request(frame,{method:'PUT',token:room.readToken,type:'image/jpeg',data:jpeg})).status,403);
+    assert.equal((await request(frame,{method:'PUT',token:room.John,type:'image/jpeg',data:Buffer.from('not jpeg')})).status,400);
+    assert.equal((await request(frame,{method:'PUT',token:room.John,type:'image/jpeg',data:jpeg})).status,200);
+    const view=await request(frame+'&player=John',{token:room.readToken});assert.equal(view.status,200);assert.equal(view.headers.get('cache-control'),'no-store');assert.deepEqual(Buffer.from(await view.arrayBuffer()),jpeg);
+    assert.equal((await request(frame+'&player=Eddie',{token:room.readToken})).status,204);
+    await request(frame,{method:'DELETE',token:bee.Eddie});assert.equal((await request(frame+'&player=John',{token:room.readToken})).status,200);
+    await new Promise(r=>setTimeout(r,6200));assert.equal((await request(frame+'&player=John',{token:room.readToken})).status,204);
+    assert.equal((await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,heartbeat:true}})).status,200);
+    await stop();await start();john=await login('John');eddie=await login('Eddie');
+    assert.equal((await (await request('/api/account',{cookie:eddie})).json()).access.id,room.id);
+    assert.equal((await (await request('/api/account',{cookie:john})).json()).access.John,room.John);
+    await request('/api/logout',{method:'POST',cookie:john});assert.equal((await request('/api/account',{cookie:john})).status,401);
+  }finally{await stop();}
+});

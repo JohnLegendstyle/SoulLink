@@ -15,6 +15,9 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSignalBlocker>
+#include <QDesktopServices>
+#include <QTimer>
+#include <QFileInfo>
 
 static const char* focusStyle = R"QSS(
 QMainWindow, QDialog, QMenu, QWidget#focusPopup { background: #101214; color: #eceff1; }
@@ -106,6 +109,23 @@ void MainWindow::initFocus()
     auto* newRound = button("+ Neue Runde",header); newRound->setObjectName("focusNew");
     header->addWidget(newRound);
     connect(newRound,&QPushButton::clicked,this,[this]{focusReturn("new-round");});
+    const QString mirrorPath=qEnvironmentVariable("SOULLINK_MIRROR");
+    const QString website=qEnvironmentVariable("SOULLINK_WEBSITE");
+    if(!website.isEmpty()) {
+        auto* web=button("Website ↗",header);header->addWidget(web);
+        connect(web,&QPushButton::clicked,this,[website]{QDesktopServices::openUrl(QUrl(website));});
+    }
+    if(!mirrorPath.isEmpty()) {
+        auto* mirror=button("Vorschau an",header);header->addWidget(mirror);
+        auto refresh=[mirror,mirrorPath]{mirror->setText(QFileInfo::exists(mirrorPath+".enabled")?"Vorschau an":"Vorschau aus");};
+        refresh();
+        connect(mirror,&QPushButton::clicked,this,[mirrorPath,refresh]{
+            const QString flag=mirrorPath+".enabled";
+            if(QFileInfo::exists(flag)) QFile::remove(flag);
+            else {QSaveFile f(flag);if(f.open(QIODevice::WriteOnly)){f.write("on");f.commit();}}
+            refresh();
+        });
+    }
 
     auto* footer = new QToolBar(this);
     footer->setMovable(false); footer->setFloatable(false);
