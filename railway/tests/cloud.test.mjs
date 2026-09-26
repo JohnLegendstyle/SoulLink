@@ -8,6 +8,21 @@ import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {validSave} from '../cloud.mjs';
 
+test('new Jedi names stay isolated to the correct account',()=>{
+  function crc16(bytes){let crc=65535;for(const b of bytes){crc^=b<<8;for(let i=0;i<8;i++)crc=((crc<<1)^((crc&32768)?0x1021:0))&65535;}return crc;}
+  for(const [old,name,role,other] of [['Optimus','Anakin','John','Eddie'],['Bee','Obi-Wan','Eddie','John']]){
+    const data=Buffer.from(readFileSync('desktop/randomizer/checkpoints/'+old+'.sav'));
+    for(const base of [0,0x40000]){
+      if(crc16(data.subarray(base,base+0xf628-16))!==data.readUInt16LE(base+0xf628-2))continue;
+      data.fill(0,base+0x64,base+0x74);
+      [...name].forEach((c,i)=>data.writeUInt16LE(c==='-'?0x1be:c>='A'&&c<='Z'?c.charCodeAt(0)-65+0x12b:c.charCodeAt(0)-97+0x145,base+0x64+i*2));
+      data.writeUInt16LE(65535,base+0x64+name.length*2);
+      data.writeUInt16LE(crc16(data.subarray(base,base+0xf628-16)),base+0xf628-2);
+    }
+    assert(validSave(data,role));assert(!validSave(data,other));assert(!validSave(data,'read'));
+  }
+});
+
 test('cloud isolation, lease contention, atomic revisions, integrity, backups and restart',async()=>{
   const directory=mkdtempSync(path.join(tmpdir(),'soullink-cloud-test-'));
   const password='local-cloud-test';

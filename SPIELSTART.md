@@ -1,10 +1,10 @@
-# Soul Link · Optimus und Bee
+# Soul Link · Anakin und Obi-Wan
 
 1. Passende ZIP für Windows oder macOS herunterladen und **vollständig entpacken**. SoulLink und die Ordner Emulator und Runtime zusammenlassen.
 2. `SoulLink.exe` (Windows) oder `SoulLink.app` (Mac) starten. Die neue App ist noch nicht mit einem kommerziellen Zertifikat signiert. Falls das Betriebssystem beim ersten Start nachfragt, nur das selbst heruntergeladene SoulLink-Paket freigeben.
 3. Eure eigene deutsche **Pokémon SoulSilver-ROM (.nds, Spielcode IPGD)** auswählen. Emulator und Java sind im Download enthalten.
 4. **Neue randomisierte Runde erstellen**. Beide Spieler erhalten eigene ROMs und Spielstände in einem neuen Ordner. Die Original-ROM wird nicht verändert.
-5. **Optimus starten** oder **Bee starten**. Im Spiel **WEITER** wählen: Ihr steht als männlicher Trainer direkt vor der Starter-Auswahl. Die drei Pokémon wählt ihr selbst. Mindestens eines pro Auswahl ist legendär (einschließlich mysteriöser Pokémon).
+5. **Anakin starten** (John) oder **Obi-Wan starten** (Eddie). Im Spiel **WEITER** wählen: Ihr steht als männlicher Trainer direkt vor der Starter-Auswahl. Die drei Pokémon wählt ihr selbst. Mindestens eines pro Auswahl ist legendär (einschließlich mysteriöser Pokémon).
 
 Standardmäßig werden auch wilde Pokémon und gegnerische Trainerteams zufällig geändert. Die Option kann abgewählt werden: Dann ändern sich nur die Starter und die dazugehörigen Rivalen-Starter. Level, Attacken, Typen und Werte behalten ihre normale Logik; geskriptete Geschenke/statische Begegnungen bleiben unverändert.
 
@@ -12,11 +12,11 @@ Standardmäßig werden auch wilde Pokémon und gegnerische Trainerteams zufälli
 
 Jede Erstellung erzeugt zwei getrennte Spielerordner. Ihr könnt unabhängig auf euren Rechnern eine Runde erstellen und jeweils euren Spieler starten. Für exakt dieselbe Runde lässt sich der eigene Runden-Ordner zwischen euren Rechnern übertragen. Auf GitHub liegen keine ROM-Dateien. Vorhandene Runden über **Vorhandene Runde öffnen → runde.json** laden. Nach einem App-Neustart wird die letzte Runde wieder angeboten.
 
-## Optimus Prime und Bumblebee (ab 0.3.0)
+## Anakin und Obi-Wan (ab 0.8.0)
 
-Neue Runden enthalten automatisch Optimus Prime für **Optimus** und Bumblebee für **Bee**. Ersetzt werden die Spielfiguren beim Stehen, Gehen und Rennen in allen vier Blickrichtungen, einschließlich des alternativen Laufsets und der Rocket-Verkleidung. Kampfporträts, Trainerpass und Spezialaktionen (z. B. Fahrrad, Surfen und Angeln) verwenden vorerst die Originalgrafiken. Die Namen im Spiel bleiben Optimus und Bee.
+Neue Runden enthalten Anakin für John und Obi-Wan für Eddie, mit blauem Lichtschwert. Die Namen im Spiel und Overlay sind **Anakin** und **Obi-Wan**. Alte Ordner-/Dateinamen und interne Spielerkennungen Optimus/Bee bleiben aus Kompatibilitätsgründen erhalten. 45 handgezeichnete Jedi-Designs ersetzen unterstützte Lauf-/Rennfiguren und alle 129 Trainer-Kampfklassen sowie die Kampfrückansichten. Die Figuren sind Pixelgrafiken, keine importierten 3D-Modelle. Trainerpass und Spezialaktionen wie Fahrrad, Surfen und Angeln verwenden vorerst Originalgrafiken. Gegnernamen und Dialoge bleiben unverändert; einige Zivilisten verwenden dieselben Grafikvorlagen wie Trainer.
 
-Für eine bestehende Runde: Spiel speichern, **alle melonDS-Fenster schließen**, die Runde in SoulLink öffnen und **Optimus Prime & Bumblebee · Figuren aktualisieren** anklicken (auch unter Spiel im Menü). Das verändert ausschließlich die Grafikbereiche der beiden lokalen ROMs. Pokémon, Zufallswerte und `.sav`-Spielstände bleiben unverändert; eine Wiederherstellungskopie endet auf `.pre-transformers.nds`. Danach normal über **WEITER** fortsetzen, keine neue Runde erzeugen. Beim Gerätewechsel auch die aktualisierte `.nds` mitnehmen; Grafikänderungen sind nicht im Spielstand gespeichert.
+Für eine bestehende Runde: Spiel speichern, Cloud-Abgleich abwarten, **alle melonDS-Fenster schließen**, Runde öffnen und **Clone Wars: Anakin & Obi-Wan anwenden** bzw. **Figuren aktualisieren** wählen. Eure noch vor der Starter-Auswahl stehenden Spielstände werden umbenannt, nicht zurückgesetzt. Alte Runden mit bereits erhaltenen Pokémon werden bei der Namensmigration sicherheitshalber nicht geändert. Vorherige ROMs liegen als `.pre-jedi.nds`, vorherige Spielstände als `.pre-jedi-name.sav` daneben. Danach **WEITER** wählen, keine neue Runde erstellen. Der vollständige Rundenordner muss für den Gerätewechsel auch die `.graphics-identity.json`-Dateien enthalten, damit die bestehende Cloud-Zuordnung erhalten bleibt. Auf beiden Geräten mindestens 0.8 verwenden.
 
 ## Tasten und Einstellungen
 
@@ -32,7 +32,7 @@ Standardtasten: **X = A/Bestätigen**, **Z = B/Zurück**, **S = DS-X/Menü**, **
 
 ## Zwischen Mac und Windows wechseln (ab 0.6.0)
 
-Einmalig auf beiden Geräten dieselbe aktuelle randomisierte Runde öffnen: den vollständigen Runden-Ordner einschließlich `runde.json`, `.nds` und `.sav` privat auf den zweiten Rechner kopieren. Dort **Vorhandene Runde öffnen** wählen und danach die Website als **derselbe Spieler** verbinden (John = Optimus, Eddie = Bee). Nicht auf dem zweiten Rechner eine neue Zufallsrunde erzeugen. ROMs werden nicht hochgeladen; die App prüft, dass die ROM auf beiden Geräten exakt identisch ist. Beide Geräte brauchen App-Version 0.6.0 oder neuer.
+Einmalig auf beiden Geräten dieselbe aktuelle randomisierte Runde öffnen: den vollständigen Runden-Ordner einschließlich `runde.json`, `.nds`, `.sav` und `.graphics-identity.json` privat auf den zweiten Rechner kopieren. Dort **Vorhandene Runde öffnen** wählen und danach die Website als **derselbe Spieler** verbinden (John = Anakin, Eddie = Obi-Wan). Nicht auf dem zweiten Rechner eine neue Zufallsrunde erzeugen. ROMs werden nicht hochgeladen. Beide Geräte brauchen App-Version 0.8.0 oder neuer für die Jedi-Grafiken und Namen.
 
 Danach läuft der Spielstandabgleich automatisch:
 
@@ -48,7 +48,7 @@ Gleichzeitiges Spielen **desselben Spielers** auf zwei Geräten wird bei verbund
 
 https://soullink-web-production.up.railway.app
 
-Website mit John (Optimus) oder Eddie (Bee) und eurem vereinbarten Passwort öffnen. Einer erstellt die gemeinsame Website-Runde; der andere findet nach der Anmeldung dieselbe Runde. In der App im Reiter Gemeinsamer Tracker einmal „Website verbinden“ anklicken und den eigenen Spieler im Browser bestätigen. Danach verbindet sich die App beim Start automatisch; Verbindungsdateien müssen nicht mehr heruntergeladen werden. Die App speichert ihren privaten Zugang nur lokal. Das Website-Passwort ist nicht im Download oder GitHub-Code enthalten.
+Website mit John (Anakin) oder Eddie (Obi-Wan) und eurem vereinbarten Passwort öffnen. Einer erstellt die gemeinsame Website-Runde; der andere findet nach der Anmeldung dieselbe Runde. In der App im Reiter Gemeinsamer Tracker einmal „Website verbinden“ anklicken und den eigenen Spieler im Browser bestätigen. Danach verbindet sich die App beim Start automatisch; Verbindungsdateien müssen nicht mehr heruntergeladen werden. Die App speichert ihren privaten Zugang nur lokal. Das Website-Passwort ist nicht im Download oder GitHub-Code enthalten.
 
 Ab **0.7.0** folgt die private Bildübertragung der FPS-Einstellung der App: 60, 90, 120 oder unbegrenzt. Änderungen im Spiel werden auch an die Website weitergegeben. Es gibt keine feste Vier-FPS-Bremse mehr. Übertragen werden nur tatsächlich gerenderte DS-Bilder, niemals der Desktop; **kein Ton**, keine Fernsteuerung. Die Website zeigt getrennt die App-Einstellung, empfangene Bilder/s und tatsächlich im Browser gezeichnete Bilder/s. Rechnerleistung, Upload, Browser und Monitor begrenzen die erreichbare Rate; ein 60-Hz-Monitor zeigt keine 120 unterschiedlichen Bilder/s. „Unbegrenzt“ heißt ohne zusätzliches Capture-Limit, nicht unbegrenzt schnelle Übertragung.
 

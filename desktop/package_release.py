@@ -45,6 +45,7 @@ else:
 print(archive)
 if not windows:
     with zipfile.ZipFile(release / 'SoulLink-Startspielstaende.zip','w',zipfile.ZIP_DEFLATED) as zipped:
+        from soullink.identity import renamed_data,NAMES
         for name in ('Optimus','Bee'):
-            zipped.write(root/'randomizer'/'checkpoints'/(name+'.sav'),name+'/'+name+'.sav')
+            zipped.writestr(NAMES[name]+'/'+NAMES[name]+'.sav',renamed_data((root/'randomizer'/'checkpoints'/(name+'.sav')).read_bytes(),name))
         zipped.write(root.parent/'SPIELSTART.md','SPIELSTART.md')

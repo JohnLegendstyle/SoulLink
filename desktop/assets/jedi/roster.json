@@ -1,0 +1,182 @@
+[
+  {
+    "id": "anakin-skywalker",
+    "name": "Anakin Skywalker"
+  },
+  {
+    "id": "obi-wan-kenobi",
+    "name": "Obi-Wan Kenobi"
+  },
+  {
+    "id": "ahsoka-tano",
+    "name": "Ahsoka Tano"
+  },
+  {
+    "id": "yoda",
+    "name": "Yoda"
+  },
+  {
+    "id": "mace-windu",
+    "name": "Mace Windu"
+  },
+  {
+    "id": "plo-koon",
+    "name": "Plo Koon"
+  },
+  {
+    "id": "kit-fisto",
+    "name": "Kit Fisto"
+  },
+  {
+    "id": "aayla-secura",
+    "name": "Aayla Secura"
+  },
+  {
+    "id": "ki-adi-mundi",
+    "name": "Ki-Adi-Mundi"
+  },
+  {
+    "id": "shaak-ti",
+    "name": "Shaak Ti"
+  },
+  {
+    "id": "luminara-unduli",
+    "name": "Luminara Unduli"
+  },
+  {
+    "id": "barriss-offee",
+    "name": "Barriss Offee"
+  },
+  {
+    "id": "pong-krell",
+    "name": "Pong Krell"
+  },
+  {
+    "id": "eeth-koth",
+    "name": "Eeth Koth"
+  },
+  {
+    "id": "adi-gallia",
+    "name": "Adi Gallia"
+  },
+  {
+    "id": "saesee-tiin",
+    "name": "Saesee Tiin"
+  },
+  {
+    "id": "even-piell",
+    "name": "Even Piell"
+  },
+  {
+    "id": "tera-sinube",
+    "name": "Tera Sinube"
+  },
+  {
+    "id": "quinlan-vos",
+    "name": "Quinlan Vos"
+  },
+  {
+    "id": "jocasta-nu",
+    "name": "Jocasta Nu"
+  },
+  {
+    "id": "nahdar-vebb",
+    "name": "Nahdar Vebb"
+  },
+  {
+    "id": "ima-gun-di",
+    "name": "Ima-Gun Di"
+  },
+  {
+    "id": "tiplar",
+    "name": "Tiplar"
+  },
+  {
+    "id": "tiplee",
+    "name": "Tiplee"
+  },
+  {
+    "id": "qui-gon-jinn",
+    "name": "Qui-Gon Jinn"
+  },
+  {
+    "id": "sifo-dyas",
+    "name": "Sifo-Dyas"
+  },
+  {
+    "id": "coleman-kcaj",
+    "name": "Coleman Kcaj"
+  },
+  {
+    "id": "oppo-rancisis",
+    "name": "Oppo Rancisis"
+  },
+  {
+    "id": "rig-nema",
+    "name": "Rig Nema"
+  },
+  {
+    "id": "finn-ertay",
+    "name": "Finn Ertay"
+  },
+  {
+    "id": "petro",
+    "name": "Petro"
+  },
+  {
+    "id": "katooni",
+    "name": "Katooni"
+  },
+  {
+    "id": "gungi",
+    "name": "Gungi"
+  },
+  {
+    "id": "ganodi",
+    "name": "Ganodi"
+  },
+  {
+    "id": "byph",
+    "name": "Byph"
+  },
+  {
+    "id": "zatt",
+    "name": "Zatt"
+  },
+  {
+    "id": "halsey",
+    "name": "Halsey"
+  },
+  {
+    "id": "knox",
+    "name": "Knox"
+  },
+  {
+    "id": "bolla-ropal",
+    "name": "Bolla Ropal"
+  },
+  {
+    "id": "ord-enisence",
+    "name": "Ord Enisence"
+  },
+  {
+    "id": "tu-anh",
+    "name": "Tu-Anh"
+  },
+  {
+    "id": "depa-billaba",
+    "name": "Depa Billaba"
+  },
+  {
+    "id": "caleb-dume",
+    "name": "Caleb Dume"
+  },
+  {
+    "id": "agen-kolar",
+    "name": "Agen Kolar"
+  },
+  {
+    "id": "jedi-tempelwache",
+    "name": "Jedi-Tempelwache"
+  }
+]

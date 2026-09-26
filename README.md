@@ -1,4 +1,4 @@
-# Soul Link · Optimus × Bee
+# Soul Link · Anakin × Obi-Wan
 
 Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, überprüfbaren Start-Spielständen und gemeinsamem Railway-Tracker.
 
@@ -10,7 +10,7 @@ Der Nutzer liefert seine eigene ROM. Dieses Repository und die Releases enthalte
 
 ## Desktop
 
-`desktop/` enthält den dunklen Launcher für Windows/macOS, den Randomizer-Adapter und den HGSS-Save-Reader. Drei eindeutige Starter, mindestens ein legendäres/mysteriöses Pokémon; optional wilde Begegnungen und Trainerteams. Getrennte männliche Trainer Optimus und Bee starten direkt vor der Auswahl. Jede Runde hat ein neues Verzeichnis. Die letzte Runde kann wieder geöffnet werden. melonDS bleibt der Spielkern und öffnet ein separates Fenster.
+`desktop/` enthält den dunklen Launcher für Windows/macOS, den Randomizer-Adapter und den HGSS-Save-Reader. Drei eindeutige Starter, mindestens ein legendäres/mysteriöses Pokémon; optional wilde Begegnungen und Trainerteams. Getrennte männliche Trainer Anakin (John) und Obi-Wan (Eddie) starten direkt vor der Auswahl. Jede Runde hat ein neues Verzeichnis. Die letzte Runde kann wieder geöffnet werden. melonDS bleibt der Spielkern und öffnet ein separates Fenster. Version 0.8 enthält ein lokal handgezeichnetes Clone-Wars-Grafikpaket, ohne Bildgenerator/API; Umfang und Grenzen siehe `desktop/assets/jedi/README.md`.
 
 Python 3.12 mit Tk, Java 21 und ein JDK mit javac/jlink werden zum Bauen benötigt:
 
@@ -35,7 +35,7 @@ Cloud tests: `PYTHONPATH=desktop python -m unittest discover -s desktop/tests -v
 
 Version 0.5 adds password-protected website accounts (John/Eddie), one-time browser-confirmed device pairing, automatic saved-team sync and private DS-only previews (up to 4 fps, no audio). The server requires `SOULLINK_PASSWORD_HASH` as `salt:scrypt(password,salt,32).hex`; never commit passwords or grants. HTTPS cookies are HttpOnly and SameSite=Lax. `SOULLINK_LOCAL_TEST=1` is only for loopback integration tests. Account room keys are encrypted in SQLite; existing rooms remain intact. Preview frames are bounded, memory-only and expire after six seconds. Tests: `node --test railway/tests/online.test.mjs`.
 
-`railway/server.mjs`: Node 24 mit SQLite, Bearer-Rundenschlüsseln und persistentem Volume unter `/data`. Die statische React-Seite wird mit `node node_modules/vite/bin/vite.js build --config railway/vite.config.ts` gebaut. `DATA_DIR=/data`, `PUBLIC_DIR=/app/public` und `PORT` konfigurieren den Server. Bestehende interne Rollen John/Eddie bleiben aus Kompatibilitätsgründen erhalten; die sichtbaren Namen sind Optimus/Bee.
+`railway/server.mjs`: Node 24 mit SQLite, Bearer-Rundenschlüsseln und persistentem Volume unter `/data`. Die statische React-Seite wird mit `node node_modules/vite/bin/vite.js build --config railway/vite.config.ts` gebaut. `DATA_DIR=/data`, `PUBLIC_DIR=/app/public` und `PORT` konfigurieren den Server. Bestehende interne Rollen John/Eddie und lokale Rundenkennungen Optimus/Bee bleiben aus Kompatibilitätsgründen erhalten; die sichtbaren Namen sind Anakin/Obi-Wan.
 
 Die Desktop-App liest gespeicherte `.sav`-Dateien, keinen laufenden Arbeitsspeicher. K. o.-Erkennung und Paarbildung sind dadurch auf gespeicherte Zustände beschränkt. Regeln und Grenzen stehen in SPIELSTART.md. Verbindungsdateien enthalten private Schlüssel und werden niemals in Releases veröffentlicht.
 

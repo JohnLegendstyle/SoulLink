@@ -110,12 +110,14 @@ def create_round(
         rom = player_dir / f"SoulSilver_{player}.nds"
         seed = secrets.randbits(63)
         starters = randomize(original_rom, rom, seed, mode)
-        from .skins import apply_skin
-        apply_skin(rom, player, backup=False)
+        from .jedi import apply_jedi
+        apply_jedi(rom, player, backup=False)
         template = checkpoints / f"{trainer}.sav"
         save = player_dir / f"SoulSilver_{player}.sav"
         shutil.copy2(template, save)
-        packs.append(PlayerPack(player, trainer, rom, save, seed, starters))
+        from .identity import rename_save,NAMES
+        rename_save(save,player)
+        packs.append(PlayerPack(player, NAMES[player], rom, save, seed, starters))
 
     manifest = {
         "format": 1,

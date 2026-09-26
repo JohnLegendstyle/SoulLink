@@ -92,8 +92,8 @@ class CloudSession:
         second = self.save.read_bytes()
         if first != second: raise CloudError('Das Spiel speichert gerade. Bitte gleich erneut versuchen.')
         state = parse_save(second)
-        expected = 'Optimus' if self.access['player'] == 'John' else 'Bee'
-        if state.trainer != expected: raise CloudError('Der Spielstand gehört zum anderen Trainer.')
+        from .identity import allowed_names
+        if state.trainer not in allowed_names(self.access['player']): raise CloudError('Der Spielstand gehört zum anderen Trainer.')
         return second
 
     def remember(self, current):
@@ -114,8 +114,8 @@ class CloudSession:
         path = '/api/cloud-save?' + urlencode({'id': self.access['roomId'], 'revision': current['revision']})
         result = api(self.access['baseUrl'], path, token=self.access['token'], timeout=15)
         data = base64.b64decode(result['data'], validate=True)
-        expected = 'Optimus' if self.access['player'] == 'John' else 'Bee'
-        if sha(data) != current['sha256'] or parse_save(data).trainer != expected:
+        from .identity import allowed_names
+        if sha(data) != current['sha256'] or parse_save(data).trainer not in allowed_names(self.access['player']):
             raise CloudError('Die heruntergeladene Sicherung ist ungültig. Lokaler Stand bleibt erhalten.')
         if self.save.read_bytes() != previous:
             raise CloudError('Der lokale Spielstand wurde inzwischen geändert. Bitte alle anderen Emulatoren schließen.')
@@ -128,7 +128,8 @@ class CloudSession:
     def prepare(self, choice=None):
         self.acquire_local()
         if not self.rom_hash:
-            with self.rom.open('rb') as source: self.rom_hash = hashlib.file_digest(source, 'sha256').hexdigest()
+            from .jedi import rom_identity
+            self.rom_hash = rom_identity(self.rom)
         local = self.snapshot()
         current = self.request('/lease', 'POST', self.payload())['current']
         self.remote_held = True

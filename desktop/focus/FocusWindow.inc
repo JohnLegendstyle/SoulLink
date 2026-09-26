@@ -80,7 +80,7 @@ void MainWindow::initFocus()
     qApp->setStyleSheet(focusStyle);
     menuBar()->setFixedHeight(0); // Original menus remain available through Mehr.
     QString player = qEnvironmentVariable("SOULLINK_PLAYER", "Optimus");
-    setWindowTitle("Soul Link · Focus · " + player);
+    setWindowTitle("Soul Link · Focus · " + (player=="Optimus"?QString("Anakin"):QString("Obi-Wan")));
     setMinimumSize(860, 590);
     if (windowCfg.GetString("Geometry").empty()) resize(1200, 800);
 
@@ -97,7 +97,7 @@ void MainWindow::initFocus()
     brand->setObjectName("focusBrand"); header->addWidget(brand);
     for (QString name : {QString("Optimus"), QString("Bee")})
     {
-        auto* b = button(name,header);
+        auto* b = button(name=="Optimus"?QString("Anakin"):QString("Obi-Wan"),header);
         b->setObjectName(name == player ? "focusPlayer" : "focusFlat");
         header->addWidget(b);
         if (name != player) connect(b,&QPushButton::clicked,this,[this,name]{focusReturn("start:"+name);});

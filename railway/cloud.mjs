@@ -6,11 +6,11 @@ function crc16(bytes){let crc=65535;for(const b of bytes){crc^=b<<8;for(let i=0;
 export function validSave(bytes,role){
   if(bytes.length!==524288)return false;
   let general=false,storage=false;
-  const trainer=role==='John'?'Optimus':'Bee';
+  const trainers=role==='John'?['Optimus','Anakin']:role==='Eddie'?['Bee','Obi-Wan']:[];
   for(const base of [0,0x40000]){
     if(crc16(bytes.subarray(base,base+0xf628-16))===bytes.readUInt16LE(base+0xf628-2)){
-      let name='';for(let i=0;i<8;i++){const c=bytes.readUInt16LE(base+0x64+2*i);if(c===0||c===65535)break;name+=c>=0x12b&&c<=0x144?String.fromCharCode(65+c-0x12b):c>=0x145&&c<=0x15e?String.fromCharCode(97+c-0x145):'?';}
-      if(name!==trainer)return false;
+      let name='';for(let i=0;i<8;i++){const c=bytes.readUInt16LE(base+0x64+2*i);if(c===0||c===65535)break;name+=c===0x1be?'-':c>=0x12b&&c<=0x144?String.fromCharCode(65+c-0x12b):c>=0x145&&c<=0x15e?String.fromCharCode(97+c-0x145):'?';}
+      if(!trainers.includes(name))return false;
       general=true;
     }
     const start=base+0xf700;

@@ -135,10 +135,10 @@ class SoulLinkApp(tk.Tk):
         game = tk.Menu(menu, tearoff=False)
         game.add_command(label="Neue randomisierte Runde", command=self.create_new_round)
         game.add_command(label="Vorhandene Runde öffnen", command=self.open_round)
-        game.add_command(label="Optimus Prime & Bumblebee anwenden", command=self.apply_character_skins)
+        game.add_command(label="Clone Wars: Anakin & Obi-Wan anwenden", command=self.apply_character_skins)
         game.add_separator()
-        game.add_command(label="Optimus starten", command=lambda: self.start_player("Optimus"))
-        game.add_command(label="Bee starten", command=lambda: self.start_player("Bee"))
+        game.add_command(label="Anakin starten", command=lambda: self.start_player("Optimus"))
+        game.add_command(label="Obi-Wan starten", command=lambda: self.start_player("Bee"))
         game.add_separator()
         game.add_command(label="Beenden", command=self.close)
         menu.add_cascade(label="Spiel", menu=game)
@@ -149,7 +149,7 @@ class SoulLinkApp(tk.Tk):
         top = ttk.Frame(self, padding=(30, 24, 30, 12))
         top.pack(fill="x")
         ttk.Label(top, text="SOUL LINK  /  FOCUS", style="Title.TLabel").pack(anchor="w")
-        ttk.Label(top, text="Dein Spiel im Mittelpunkt. Optimus × Bee · Windows + macOS", style="Sub.TLabel").pack(anchor="w", pady=(3, 0))
+        ttk.Label(top, text="Dein Spiel im Mittelpunkt. Anakin × Obi-Wan · Windows + macOS", style="Sub.TLabel").pack(anchor="w", pady=(3, 0))
         self.tabs = ttk.Notebook(self)
         self.tabs.pack(fill="both", expand=True, padx=30, pady=(4, 22))
         self.round_tab = ttk.Frame(self.tabs, padding=22, style="Panel.TFrame")
@@ -178,13 +178,14 @@ class SoulLinkApp(tk.Tk):
         self.adventure_var = tk.BooleanVar(value=bool(self.settings['adventure']))
         self.status_var = tk.StringVar(value="Bereit für eine neue Runde.")
         self.player_cards=[]
-        for column,(name,character) in enumerate((('Optimus','OPTIMUS PRIME'),('Bee','BUMBLEBEE'))):
+        for column,(name,character) in enumerate((('Optimus','JOHN · ANAKIN SKYWALKER'),('Bee','EDDIE · OBI-WAN KENOBI'))):
             card=ttk.Frame(tab,padding=22,style='Panel.TFrame')
             self.player_cards.append(card)
             card.grid(row=2,column=column,sticky='ew',padx=(0,8) if column==0 else (8,0),pady=(24,12))
             ttk.Label(card,text=character,style='Panel.TLabel',foreground=COLORS['gold'],font=('Arial',10,'bold')).pack(anchor='w')
-            ttk.Label(card,text=name,style='Panel.TLabel',font=('Arial',28,'bold')).pack(anchor='w',pady=(8,16))
-            ttk.Button(card,text=name+' starten',style='Primary.TButton',command=lambda p=name:self.start_player(p)).pack(fill='x')
+            display='Anakin' if name=='Optimus' else 'Obi-Wan'
+            ttk.Label(card,text=display,style='Panel.TLabel',font=('Arial',28,'bold')).pack(anchor='w',pady=(8,16))
+            ttk.Button(card,text=display+' starten',style='Primary.TButton',command=lambda p=name:self.start_player(p)).pack(fill='x')
         ttk.Label(tab,textvariable=self.status_var,style='Panel.TLabel',foreground=COLORS['green'],wraplength=760).grid(row=3,column=0,columnspan=2,sticky='w',pady=(4,16))
         self.cloud_status = tk.StringVar(value='Cloud-Spielstand: Website verbinden, dann vor jedem Spielstart automatisch abgleichen.')
         ttk.Label(tab,textvariable=self.cloud_status,style='Panel.TLabel',foreground=COLORS['gold'],wraplength=760).grid(row=6,column=0,columnspan=2,sticky='w',pady=(10,0))
@@ -360,20 +361,30 @@ class SoulLinkApp(tk.Tk):
             messagebox.showinfo('Figuren','Bitte zuerst eure vorhandene Runde öffnen.'); return
         if any(p.poll() is None for p in self.processes.values()):
             messagebox.showinfo('Figuren','Bitte zuerst das laufende Spiel schließen.'); return
-        if not messagebox.askokcancel('Optimus Prime & Bumblebee',
+        if not messagebox.askokcancel('Clone Wars: Anakin & Obi-Wan',
             'Bitte auch separat gestartete melonDS-Fenster schließen.\n\n'
-            'Ersetzt die Lauf- und Rennfiguren in eurer aktuellen Runde. '
-            'Spielstände und Pokémon bleiben unverändert. Die bisherigen ROMs werden gesichert.\n\n'
-            'Kampfporträts und Spezialaktionen bleiben vorerst im Originaldesign.'):
+            'John wird Anakin, Eddie wird Obi-Wan, jeweils mit Lichtschwert. '
+            'Ersetzt Lauf-/Rennfiguren und Trainer-Kampfgrafiken durch Jedi. '
+            'Eure Namen im Spiel werden Anakin und Obi-Wan. Fortschritt und Pokémon bleiben erhalten. '
+            'ROMs und Spielstände werden vorher gesichert.\n\n'
+            'Gegnernamen, Dialoge und Spezialaktionen (z. B. Radfahren) bleiben unverändert. '
+            'Einige Zivilisten teilen ihre Grafik mit Trainern und bekommen ebenfalls den Jedi-Look. '
+            'Für Gerätewechsel den vollständigen Rundenordner einschließlich der Grafik-Zuordnung kopieren; '
+            'auf beiden Geräten Version 0.8 oder neuer verwenden.'):
             return
-        from .skins import apply_skin
+        from .jedi import apply_jedi
         packs = list(self.packs.values())
         self.creating = True
         self.create_button.state(['disabled'])
         self.status_var.set('Die Spielfiguren werden aktualisiert …')
         def work() -> None:
             try:
-                for pack in packs: apply_skin(pack.rom,pack.player)
+                from .identity import renamed_data,rename_save
+                for pack in packs:
+                    if pack.save:renamed_data(pack.save.read_bytes(),pack.player)
+                for pack in packs:
+                    apply_jedi(pack.rom,pack.player)
+                    if pack.save:rename_save(pack.save,pack.player)
                 self.events.put(('skins',None))
             except Exception as error:
                 self.events.put(('error',str(error)))
@@ -563,9 +574,9 @@ class SoulLinkApp(tk.Tk):
                 self.stop_sync()
                 self.connection_var.set('')
                 self._save()
-                self.status_var.set('Fertig! Optimus und Bee stehen vor der Starter-Auswahl.\n' + directory.name)
+                self.status_var.set('Fertig! Anakin und Obi-Wan stehen vor der Starter-Auswahl.\n' + directory.name)
             elif kind == 'skins':
-                self.status_var.set('Figuren aktualisiert: Optimus Prime × Bumblebee. Ihr könnt euren Spielstand fortsetzen.')
+                self.status_var.set('Figuren aktualisiert: Anakin × Obi-Wan mit Lichtschwertern. Euer Spielstand bleibt erhalten.')
             elif kind == 'error':
                 self.status_var.set('Vorgang fehlgeschlagen. Eure Spielstände wurden nicht zurückgesetzt.')
                 messagebox.showerror('Soul Link',value)
