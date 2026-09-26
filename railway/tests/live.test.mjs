@@ -42,10 +42,34 @@ test('live relay authenticates, parses split frames, follows FPS, isolates playe
     assert(performance.now()-start<1600,'Relay still throttles fast frames');
     const bee=await fetch(base+'/api/live?id=room&player=Eddie',{headers:{Authorization:'Bearer read'},signal:abort.signal});
     const beeReader=bee.body.getReader();assert.equal(Buffer.from((await beeReader.read()).value).readUInt16BE(6),0);await beeReader.cancel();
-    upload.end();do{got=await frame();}while(got.kind!==0);await reader.cancel();
+    upload.end();
+    // Rotating the publisher must not flash offline while it reconnects.
+    await new Promise(r=>setTimeout(r,100));
+    const reconnect=await fetch(base+'/api/live?id=room&player=John',{headers:{Authorization:'Bearer read'},signal:abort.signal});
+    const reconnectReader=reconnect.body.getReader();assert.equal(Buffer.from((await reconnectReader.read()).value).readUInt16BE(6),1);await reconnectReader.cancel();
+    await reader.cancel();
     const wrong=http.request(base+'/api/live?id=room',{method:'PUT',headers:{Authorization:'Bearer john','Content-Type':'application/x-soullink-frames','Transfer-Encoding':'chunked'}});
     wrong.on('error',()=>{});wrong.flushHeaders();await new Promise(r=>wrong.once('response',res=>{res.resume();r();}));
     const invalid=Buffer.alloc(8);invalid.writeUInt32BE(300001);invalid.writeUInt16BE(1,6);wrong.end(invalid);
     await new Promise(r=>wrong.once('close',r));
   }finally{upload?.destroy();abort.abort();server.closeAllConnections();await new Promise(r=>server.close(r));}
+});
+
+test('acknowledged batches are validated atomically and preserve player isolation',async()=>{
+  const relay=liveRelay({authorize:req=>({'Bearer john':{role:'John'},'Bearer read':{role:'read'}}[req.headers.authorization]),send:(res,status,data)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(data));}});
+  const server=http.createServer(async(req,res)=>{await relay.handle(req,res,new URL(req.url,'http://localhost'));});
+  await new Promise(r=>server.listen(0,'127.0.0.1',r));const base='http://127.0.0.1:'+server.address().port;
+  const packet=Buffer.from([0,0,0,4,0,120,0,1,255,216,255,217]);
+  const post=(data,role='john')=>fetch(base+'/api/live/batch?id=room',{method:'POST',headers:{Authorization:'Bearer '+role,'Content-Type':'application/x-soullink-frames'},body:data});
+  try{
+    assert.equal((await post(packet,'read')).status,403);
+    assert.equal((await post(packet.subarray(0,11))).status,400);
+    let response=await post(Buffer.concat(Array(12).fill(packet)));
+    assert.equal(response.status,200);assert.deepEqual(await response.json(),{ok:true,accepted:12,player:'John'});
+    for(const [player,kind] of [['John',1],['Eddie',0]]){
+      const response=await fetch(base+'/api/live?id=room&player='+player,{headers:{Authorization:'Bearer read'}});
+      const reader=response.body.getReader();assert.equal(Buffer.from((await reader.read()).value).readUInt16BE(6),kind);await reader.cancel();
+    }
+    assert.equal((await post(Buffer.concat(Array(65).fill(packet)))).status,400);
+  }finally{server.closeAllConnections();await new Promise(r=>server.close(r));}
 });

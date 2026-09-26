@@ -14,11 +14,11 @@ export function liveRelay({authorize,send,onFrame=()=>{}}){
     if(view.blocked){view.pending=packet;return;}
     view.blocked=!view.res.write(packet);
   }
-  function publish(key,jpeg,fps=4){
+  function publish(key,jpeg,fps=4,notify=true){
     const c=channel(key);if(!c)return;
     const header=Buffer.alloc(8);header.writeUInt32BE(jpeg.length);header.writeUInt16BE(fps,4);header.writeUInt16BE(1,6);
     const packet=Buffer.concat([header,jpeg]);c.latest=packet;c.at=Date.now();
-    for(const v of c.viewers)write(v,packet);
+    if(notify)for(const v of c.viewers)write(v,packet);
     onFrame(key,jpeg);
   }
   function clear(key){const c=channels.get(key);if(!c)return;c.latest=null;for(const v of c.viewers)write(v,control(0));}
@@ -33,9 +33,38 @@ export function liveRelay({authorize,send,onFrame=()=>{}}){
     }
   },1000).unref();
   async function handle(req,res,url){
-    if(url.pathname!=='/api/live')return false;
+    if(!['/api/live','/api/live/batch'].includes(url.pathname))return false;
     const id=url.searchParams.get('id'),a=authorize(req,id);
     if(!a){send(res,401,{error:'Privater Zugang erforderlich.'});return true;}
+    if(url.pathname==='/api/live/batch'){
+      if(req.method!=='POST'){send(res,405,{error:'POST erforderlich.'});return true;}
+      if(a.role==='read'){send(res,403,{error:'Nur der Spieler darf senden.'});return true;}
+      if(req.headers['content-type']!=='application/x-soullink-frames'){send(res,415,{error:'Frame-Paket erforderlich.'});return true;}
+      const key=id+':'+a.role,c=channel(key);
+      if(!c){send(res,503,{error:'Übertragung ausgelastet.'});return true;}
+      let size=0;const chunks=[];
+      for await(const chunk of req){size+=chunk.length;if(size>4000000){send(res,413,{error:'Paket zu groß.'});return true;}chunks.push(chunk);}
+      const packet=Buffer.concat(chunks),frames=[];let offset=0;
+      while(offset+8<=packet.length){
+        const length=packet.readUInt32BE(offset),fps=packet.readUInt16BE(offset+4),kind=packet.readUInt16BE(offset+6);
+        if(kind!==1||length<4||length>300000||fps>1000||offset+8+length>packet.length||frames.length>=64){send(res,400,{error:'Ungültiges Frame-Paket.'});return true;}
+        const jpeg=packet.subarray(offset+8,offset+8+length);
+        if(jpeg[0]!==255||jpeg[1]!==216||jpeg.at(-2)!==255||jpeg.at(-1)!==217){send(res,400,{error:'Ungültiges Bild.'});return true;}
+        frames.push({jpeg,fps});offset+=8+length;
+      }
+      if(offset!==packet.length||!frames.length){send(res,400,{error:'Unvollständiges Frame-Paket.'});return true;}
+      // A finite acknowledged request traverses Windows/proxy connections
+      // reliably, unlike a permanently half-open chunked upload.
+      const now=Date.now();
+      if(!c.batchAt||now-c.batchAt>=1000){c.batchAt=now;c.batchBytes=0;c.batchRequests=0;}
+      c.batchBytes+=size;c.batchRequests++;
+      if(c.batchBytes>50000000||c.batchRequests>30){send(res,429,{error:'Übertragung zu schnell.'});return true;}
+      for(const f of frames)publish(key,f.jpeg,f.fps,false);
+      // Keep a received batch together: writing its individual JPEGs in a
+      // synchronous burst would hit backpressure and discard most frames.
+      for(const v of c.viewers)write(v,packet);
+      send(res,200,{ok:true,accepted:frames.length,player:a.role});return true;
+    }
     if(req.method==='GET'){
       if(url.searchParams.get('publish')==='1'){
         send(res,a.role==='read'?403:200,a.role==='read'?{error:'Nur der Spieler darf senden.'}:{ok:true});return true;
@@ -82,7 +111,9 @@ export function liveRelay({authorize,send,onFrame=()=>{}}){
     }catch{req.destroy();}
     finally{
       clearTimeout(timeout);publishers--;
-      if(c.publisher===req){c.publisher=null;clear(key);}
+      // Keep the last image during the normal 50-second publisher reconnect.
+      // The six-second freshness timeout, not a socket rotation, marks offline.
+      if(c.publisher===req)c.publisher=null;
       if(!res.destroyed)res.end();
     }
     return true;

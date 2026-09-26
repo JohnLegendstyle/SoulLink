@@ -31,6 +31,11 @@ def apply(source: Path):
             '  fixup_libs(File.join(frameworks_dir, "libSDL3.dylib"), ENV["SOULLINK_SDL3_SOURCE"])\n'
             'end')
     qt=source/'src/frontend/qt_sdl'
+    replace(qt/'EmuThread.cpp','#include "EmuInstance.h"',
+            '#include "EmuInstance.h"\n#include "FocusTeam.inc"')
+    replace(qt/'EmuThread.cpp','                nlines = emuInstance->nds->RunFrame();',
+            '                nlines = emuInstance->nds->RunFrame();\n                focusSnapshotTeam(emuInstance->nds);')
+    shutil.copy2(Path(__file__).with_name('FocusTeam.inc'),qt/'FocusTeam.inc')
     replace(qt/'Screen.cpp','#include "version.h"',
             '#include "version.h"\n#include <QSaveFile>\n#include <QFileInfo>\n#include "FocusCapture.inc"')
     replace(qt/'Screen.cpp','    glContext->SwapBuffers();',

@@ -183,6 +183,7 @@ def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str 
     env=os.environ.copy()
     env['SOULLINK_PLAYER']=player
     if request is not None: env['SOULLINK_REQUEST']=str(request)
+    if request is not None: env['SOULLINK_TEAM']=str(request.with_suffix('.team'))
     if mirror is not None: env['SOULLINK_MIRROR']=str(mirror)
     if website: env['SOULLINK_WEBSITE']=website
     return subprocess.Popen(command, cwd=str(executable.parent),env=env)
@@ -228,3 +229,12 @@ def copy_emulator(source: Path, destination: Path) -> Path:
     shutil.copytree(source.parent, destination, dirs_exist_ok=True, ignore=shutil.ignore_patterns('portable'))
     target = destination / source.name
     return target
+
+
+def preferred_emulator(selected: str, bundled: Path) -> str:
+    """Portable updates must not keep launching an older bundled emulator."""
+    previous=Path(selected) if selected else None
+    managed=previous and ((previous.parent/'focus-version.txt').is_file()
+                         or previous.parent.name=='Emulator' and previous.name in ('melonDS.exe','melonDS.app'))
+    if bundled.exists() and (not previous or not previous.exists() or managed):return str(bundled)
+    return selected

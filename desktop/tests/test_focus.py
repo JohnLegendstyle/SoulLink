@@ -5,6 +5,15 @@ from soullink.melonds import DEFAULT_KEYS, write_config, read_runtime_settings, 
 
 
 class FocusTests(unittest.TestCase):
+    def test_portable_update_uses_new_bundled_emulator(self):
+        from soullink.melonds import preferred_emulator
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);old=root/'old'/'Emulator'/'melonDS.exe';new=root/'new'/'Emulator'/'melonDS.exe'
+            old.parent.mkdir(parents=True);old.touch();new.parent.mkdir(parents=True);new.touch()
+            self.assertEqual(preferred_emulator(str(old),new),str(new))
+            custom=root/'custom.exe';custom.touch()
+            self.assertEqual(preferred_emulator(str(custom),new),str(custom))
+            self.assertEqual(preferred_emulator('',new),str(new))
     def test_both_native_title_paths_use_jedi_display_names(self):
         root=Path(__file__).resolve().parents[1]/'focus'
         for name in ('FocusWindow.inc','apply_focus.py'):

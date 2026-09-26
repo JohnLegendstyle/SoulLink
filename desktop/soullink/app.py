@@ -86,9 +86,9 @@ class SoulLinkApp(tk.Tk):
             defaults.update(loaded)
         except (OSError, ValueError):
             pass
-        if not defaults['emulator']:
-            bundled = install_root() / 'Emulator' / ('melonDS.app' if platform.system() == 'Darwin' else 'melonDS.exe')
-            if bundled.exists(): defaults['emulator'] = str(bundled)
+        from .melonds import preferred_emulator
+        bundled = install_root() / 'Emulator' / ('melonDS.app' if platform.system() == 'Darwin' else 'melonDS.exe')
+        defaults['emulator']=preferred_emulator(str(defaults['emulator']),bundled)
         return defaults
 
     def _save(self) -> None:
@@ -501,7 +501,8 @@ class SoulLinkApp(tk.Tk):
                 expected='Optimus' if access.get('player')=='John' else 'Bee'
                 if expected not in self.packs or Path(self.save_var.get()).resolve()!=self.packs[expected].save.resolve():
                     self.sync_status.set('Diese Website-Verbindung gehört zum anderen Spieler.');return
-            self.sync_worker = SyncWorker(Path(self.connection_var.get()), Path(self.save_var.get()), lambda text: self.events.put(('sync',text)))
+            request=self.runtime.get(expected,(None,None))[1] if access else None
+            self.sync_worker = SyncWorker(Path(self.connection_var.get()), Path(self.save_var.get()), lambda text: self.events.put(('sync',text)),team=request.with_suffix('.team') if request else None)
             self.sync_worker.start()
             self.sync_status.set("Verbindung wird aufgebaut …")
         except Exception as error:
@@ -629,6 +630,7 @@ class SoulLinkApp(tk.Tk):
 
     def run_after_game(self,action):
         if action=='new-round': self.after(200,self.create_new_round)
+        elif action=='connect-website': self.after(200,self.connect_website)
         elif action in ('start:Optimus','start:Bee'):
             self.after(200,lambda p=action.split(':')[1]:self.start_player(p))
 

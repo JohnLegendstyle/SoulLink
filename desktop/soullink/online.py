@@ -7,6 +7,7 @@ import http.client
 import os
 import socket
 import struct
+from collections import deque
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
 from .sync import tls_context
@@ -50,6 +51,7 @@ class MirrorWorker:
         self.access=access;self.frame=frame;self.on_status=on_status
         self.stop_event=threading.Event();self.thread=None
         self.connection=None
+        self.frames=deque();self.frames_lock=threading.Lock()
     def start(self):
         self.thread=threading.Thread(target=self._run,daemon=True);self.thread.start()
     def stop(self):
@@ -74,52 +76,72 @@ class MirrorWorker:
             raise ValueError('Invalid frame')
         return data,fps
     def _run(self):
+        """Collect at native FPS; send bounded batches and wait for real ACKs."""
+        from .cloud import atomic_write
         base=urlsplit(trusted_base(self.access['baseUrl']))
-        endpoint='/api/live?'+urlencode({'id':self.access['roomId']})
-        last=None;status='';opened=0;last_send=0
+        endpoint='/api/live/batch?'+urlencode({'id':self.access['roomId']})
+        status_path=self.frame.with_suffix('.status.json')
+        reconnect=self.frame.with_suffix('.reconnect')
+        flag=self.frame.with_name(self.frame.name+'.enabled')
+        status='';captured=0;last_capture=0.;capture_error=False
+        def report(message,live=False):
+            nonlocal status
+            try:atomic_write(status_path,json.dumps({'message':message,'live':live,'at':time.time()}).encode())
+            except OSError:pass # Windows can briefly hold the native status reader.
+            if message!=status:status=message;self.on_status(message)
+        def collect():
+            nonlocal captured,last_capture,capture_error
+            last=None
+            while not self.stop_event.wait(.001):
+                if not flag.exists():
+                    with self.frames_lock:self.frames.clear()
+                    last=None;self.stop_event.wait(.1);continue
+                try:
+                    stat=self.frame.stat()
+                    if stat.st_mtime_ns==last or time.time()-stat.st_mtime>3:continue
+                    packet,fps=self.packet(self.frame.read_bytes())
+                    last=stat.st_mtime_ns;last_capture=time.monotonic();captured=fps;capture_error=False
+                    with self.frames_lock:
+                        self.frames.append((packet,time.monotonic()))
+                        while len(self.frames)>32 or sum(len(p[0]) for p in self.frames)>4000000:self.frames.popleft()
+                except FileNotFoundError:pass
+                except (OSError,ValueError):capture_error=True
         timer=None
         if os.name=='nt':
             import ctypes
             timer=ctypes.windll.winmm;timer.timeBeginPeriod(1)
-        def report(message):
-            nonlocal status
-            if message!=status: status=message;self.on_status(message)
-        def send(packet):
-            self.connection.send(('%x\r\n'%len(packet)).encode()+packet+b'\r\n')
+        collector=threading.Thread(target=collect,daemon=True);collector.start()
         try:
-            while not self.stop_event.wait(.001):
+            while not self.stop_event.wait(.08):
+                if not flag.exists():
+                    self._disconnect();report('Übertragung ausgeschaltet');self.stop_event.wait(.4);continue
+                if reconnect.exists():reconnect.unlink(missing_ok=True);self._disconnect()
+                with self.frames_lock:
+                    now=time.monotonic()
+                    fresh=[p for p,at in self.frames if now-at<.5];self.frames.clear()
+                if not fresh:
+                    if time.monotonic()-last_capture>3:
+                        report('Kein Spielbild: Spielfenster sichtbar lassen' if not capture_error else 'Spielbild momentan nicht lesbar')
+                        self.stop_event.wait(.2)
+                    continue
                 try:
-                    if not self.frame.with_name(self.frame.name+'.enabled').exists():
-                        self._disconnect();last=None
-                        report('Bildübertragung ausgeschaltet');self.stop_event.wait(.1);continue
-                    if self.connection and time.monotonic()-opened>50:self._disconnect();last=None
                     if not self.connection:
-                        # Some HTTPS proxies withhold a response until the upload
-                        # ends. Authenticate separately, then send without waiting
-                        # for a duplex response on the streaming request.
-                        api(self.access['baseUrl'],endpoint+'&publish=1',token=self.access['token'],timeout=3)
-                        if base.scheme=='https': connection=http.client.HTTPSConnection(base.hostname,base.port,timeout=3,context=tls_context())
-                        else: connection=http.client.HTTPConnection(base.hostname,base.port,timeout=3)
-                        self.connection=connection
-                        connection.putrequest('PUT',endpoint)
-                        connection.putheader('Authorization','Bearer '+self.access['token'])
-                        connection.putheader('Content-Type','application/x-soullink-frames')
-                        connection.putheader('Transfer-Encoding','chunked');connection.endheaders()
-                        opened=time.monotonic();last_send=opened;last=None
-                    if time.monotonic()-last_send>1:
-                        send(struct.pack('!IHH',0,0,2));last_send=time.monotonic()
-                    stat=self.frame.stat()
-                    if time.time()-stat.st_mtime>3:
-                        report('Bildübertragung pausiert');self.stop_event.wait(.05);continue
-                    if stat.st_mtime_ns==last or stat.st_size>300008: continue
-                    packet,fps=self.packet(self.frame.read_bytes());send(packet)
-                    last=stat.st_mtime_ns;last_send=time.monotonic()
-                    report('Bildübertragung · '+(str(fps)+' FPS als Ziel' if fps else 'FPS wie App: unbegrenzt')+' · ohne Ton')
-                except FileNotFoundError: pass
-                except Exception:
-                    self._disconnect();last=None
-                    report('Bildübertragung wartet auf Verbindung');self.stop_event.wait(2)
+                        self.connection=(http.client.HTTPSConnection(base.hostname,base.port,timeout=4,context=tls_context())
+                                         if base.scheme=='https' else http.client.HTTPConnection(base.hostname,base.port,timeout=4))
+                    self.connection.request('POST',endpoint,body=b''.join(fresh),headers={
+                        'Authorization':'Bearer '+self.access['token'],'Content-Type':'application/x-soullink-frames'})
+                    response=self.connection.getresponse();raw=response.read(4096)
+                    if response.status!=200:
+                        self._disconnect()
+                        report('Website erneut verbinden' if response.status in (401,403) else 'Website-Update erforderlich' if response.status==404 else 'Verbindung wird wiederhergestellt')
+                        self.stop_event.wait(2);continue
+                    result=json.loads(raw)
+                    if result.get('accepted')!=len(fresh) or result.get('player')!=self.access['player']:
+                        raise ValueError('Missing delivery confirmation')
+                    report('Live · '+(str(captured)+' FPS Ziel' if captured else 'FPS wie App')+' · Empfang bestätigt',True)
+                except (OSError,ValueError,http.client.HTTPException):
+                    self._disconnect();report('Verbindung wird wiederhergestellt');self.stop_event.wait(.5)
         finally:
-            self._disconnect()
+            self.stop_event.set();collector.join(timeout=2);self._disconnect()
             if timer:timer.timeEndPeriod(1)
-            self.frame.unlink(missing_ok=True)
+            self.frame.unlink(missing_ok=True);status_path.unlink(missing_ok=True)

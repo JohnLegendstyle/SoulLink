@@ -17,6 +17,7 @@
 #include <QSignalBlocker>
 #include <QDesktopServices>
 #include <QTimer>
+#include <QDateTime>
 #include <QFileInfo>
 
 static const char* focusStyle = R"QSS(
@@ -115,9 +116,26 @@ void MainWindow::initFocus()
         auto* web=button("Website ↗",header);header->addWidget(web);
         connect(web,&QPushButton::clicked,this,[website]{QDesktopServices::openUrl(QUrl(website));});
     }
+    auto* streamBar=new QToolBar(this);streamBar->setMovable(false);streamBar->setFloatable(false);
+    addToolBar(Qt::BottomToolBarArea,streamBar);
     if(!mirrorPath.isEmpty()) {
-        auto* mirror=button("Vorschau an",header);header->addWidget(mirror);
-        auto refresh=[mirror,mirrorPath]{mirror->setText(QFileInfo::exists(mirrorPath+".enabled")?"Vorschau an":"Vorschau aus");};
+        auto* mirror=button("Übertragung starten",streamBar);streamBar->addWidget(mirror);
+        auto* connectionStatus=new QLabel("Verbindung wird geprüft",streamBar);streamBar->addWidget(connectionStatus);
+        connectionStatus->setMaximumWidth(270);
+        const QFileInfo info(mirrorPath);
+        const QString stem=info.path()+"/"+info.completeBaseName();
+        auto refresh=[mirror,mirrorPath,connectionStatus,stem]{
+            const bool enabled=QFileInfo::exists(mirrorPath+".enabled");
+            mirror->setText(enabled?"Übertragung stoppen":"Übertragung starten");
+            QString text=enabled?"Warte auf Spielbild":"Übertragung aus";
+            QFile file(stem+".status.json");
+            if(enabled&&file.open(QIODevice::ReadOnly)){
+                const auto obj=QJsonDocument::fromJson(file.readAll()).object();
+                if(QDateTime::currentSecsSinceEpoch()-obj.value("at").toDouble()<8)
+                    text=obj.value("message").toString(text);
+            }
+            connectionStatus->setText(text);connectionStatus->setToolTip(text);
+        };
         refresh();
         connect(mirror,&QPushButton::clicked,this,[this,mirrorPath,refresh]{
             const QString flag=mirrorPath+".enabled";
@@ -125,10 +143,19 @@ void MainWindow::initFocus()
             else {QSaveFile f(flag);if(f.open(QIODevice::WriteOnly)){f.write("on");f.commit();globalCfg.SetBool("PauseLostFocus",false);}}
             refresh();
         });
+        auto* retry=button("Neu verbinden",streamBar);streamBar->addWidget(retry);
+        connect(retry,&QPushButton::clicked,this,[stem]{QSaveFile file(stem+".reconnect");if(file.open(QIODevice::WriteOnly)){file.write("retry");file.commit();}});
+        auto* connectionTimer=new QTimer(this);
+        connect(connectionTimer,&QTimer::timeout,this,refresh);connectionTimer->start(1000);
+    } else {
+        streamBar->addWidget(new QLabel("Website nicht verbunden",streamBar));
+        auto* connectWebsite=button("Website verbinden",streamBar);streamBar->addWidget(connectWebsite);
+        connect(connectWebsite,&QPushButton::clicked,this,[this]{focusReturn("connect-website");});
     }
 
     auto* footer = new QToolBar(this);
     footer->setMovable(false); footer->setFloatable(false);
+    addToolBarBreak(Qt::BottomToolBarArea);
     addToolBar(Qt::BottomToolBarArea,footer);
     auto* left = new QWidget(footer); left->setSizePolicy(QSizePolicy::Expanding,QSizePolicy::Preferred);
     footer->addWidget(left);

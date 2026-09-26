@@ -27,12 +27,13 @@ export function useSavedAccess(access:SoulAccess|null,setAccess:(a:SoulAccess)=>
 
 function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
   const canvas=useRef<HTMLCanvasElement>(null);
+  const [retry,setRetry]=useState(0),[connection,setConnection]=useState('Verbinde …');
   const [live,setLive]=useState(false),[fps,setFPS]=useState({target:0,received:0,shown:0});
   useEffect(()=>{
     let active=true,controller:AbortController|null=null,animation=0;
     const encoded:{bytes:Uint8Array<ArrayBuffer>,due:number}[]=[],decoded:{image:ImageBitmap,due:number}[]=[];
     let decoding=false,visible=false,generation=0,lastDue=0;
-    let target=0,received=0,shown=0,lastFrame=0,lastStats=performance.now();
+    let target=0,received=0,shown=0,lastFrame=0,lastStats=performance.now(),lastPacket=performance.now();
     function offline(){generation++;encoded.length=0;for(const f of decoded)f.image.close();decoded.length=0;lastDue=0;if(visible){visible=false;setLive(false);}}
     async function decode(){
       if(decoding)return;decoding=true;
@@ -59,12 +60,14 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
       while(active){
         if(document.hidden){await new Promise(r=>setTimeout(r,250));continue;}
         controller=new AbortController();
+        lastPacket=performance.now();
         try{
           const result=await fetch('/api/live?'+new URLSearchParams({id:access.id,player}),{headers:{Authorization:'Bearer '+access.readToken},cache:'no-store',signal:controller.signal});
-          if(!result.ok||!result.body)throw Error('Stream unavailable');
+          if(!result.ok||!result.body){setConnection(result.status===401?'Zugang abgelaufen – Website neu anmelden':'Verbindung wird wiederhergestellt …');throw Error('Stream unavailable');}
           const reader=result.body.getReader();let pending:Uint8Array<ArrayBufferLike>=new Uint8Array(0);
           try{while(active){
             const {value,done}=await reader.read();if(done)break;
+            lastPacket=performance.now();
             if(pending.length+value.length>4000000)throw Error('Frame buffer limit');
             const buffer=new Uint8Array(pending.length+value.length);buffer.set(pending);buffer.set(value,pending.length);pending=buffer;
             while(pending.length>=8){
@@ -74,6 +77,7 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
               if(kind===1&&size){
                 const now=performance.now();if(target!==configured)lastDue=0;
                 target=configured;received++;lastFrame=now;
+                setConnection('Verbunden');
                 // A short bounded playout buffer smooths TCP packet bursts; it
                 // never fabricates frames or grows into a delayed recording.
                 lastDue=Math.min(now+150,Math.max(now+50,lastDue+(configured?1000/configured:0)));
@@ -82,7 +86,7 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
                 // A shorter queue discards frames before they become due.
                 if(encoded.length>32)encoded.shift();
               }
-              else if(kind===0)offline();
+              else if(kind===0&&performance.now()-lastFrame>8000){offline();setConnection('Warte auf Spielbild aus der App');}
               pending=pending.subarray(size+8);
             }
             void decode();
@@ -91,17 +95,19 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
         if(active)await new Promise(r=>setTimeout(r,250));
       }
     }
-    const visibility=()=>{if(document.hidden){controller?.abort();offline();}};
+    const visibility=()=>{if(document.hidden)controller?.abort();};
     document.addEventListener('visibilitychange',visibility);
     const stats=setInterval(()=>{
       const now=performance.now(),seconds=(now-lastStats)/1000;
       setFPS({target,received:Math.round(received/seconds),shown:Math.round(shown/seconds)});received=shown=0;lastStats=now;
-      if(now-lastFrame>3000)offline();
+      if(lastFrame&&now-lastFrame>3000)setConnection('Verbindung wird wiederhergestellt …');
+      if(now-lastFrame>8000)offline();
+      if(controller&&now-lastPacket>8000)controller.abort();
     },1000);
     draw();void connect();
     return()=>{active=false;controller?.abort();cancelAnimationFrame(animation);clearInterval(stats);document.removeEventListener('visibilitychange',visibility);for(const f of decoded)f.image.close();decoded.length=0;encoded.length=0;};
-  },[access.id,access.readToken,player]);
-  return <article className="game-preview"><div className="preview-title"><strong>{player==='John'?'Anakin':'Obi-Wan'}</strong><span className={live?'is-live':''}>{live?'● Live · App: '+(fps.target?fps.target+' FPS':'unbegrenzt'):'Nicht am Übertragen'}</span></div><div className="preview-screen"><canvas ref={canvas} style={{display:live?'block':'none',maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} aria-label={`DS-Bildschirme von ${player==='John'?'Anakin':'Obi-Wan'}`}/>{!live&&<p>Spiel in der verbundenen App starten.<br/>Die Übertragung ist privat und ohne Ton.</p>}</div><p style={{padding:'8px 16px',fontSize:12,color:'#a4adbd',margin:0}}>Empfangen: {live?fps.received:0} FPS · Angezeigt: {live?fps.shown:0} FPS<br/>Anzeige abhängig von Bildschirm, Browser und Verbindung.</p></article>;
+  },[access.id,access.readToken,player,retry]);
+  return <article className="game-preview"><div className="preview-title"><strong>{player==='John'?'Anakin':'Obi-Wan'}</strong><span className={live&&connection==='Verbunden'?'is-live':''}>{live&&connection==='Verbunden'?'● Live · App: '+(fps.target?fps.target+' FPS':'unbegrenzt'):connection}</span></div><div className="preview-screen"><canvas ref={canvas} style={{display:live?'block':'none',maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} aria-label={`DS-Bildschirme von ${player==='John'?'Anakin':'Obi-Wan'}`}/>{!live&&<p>In der App „Übertragung starten“ einschalten.<br/>Spielfenster nicht minimieren. Kein Speichern nötig.<br/>Privat und ohne Ton.</p>}</div><p style={{padding:'8px 16px',fontSize:12,color:'#a4adbd',margin:0}}>Empfangen: {live?fps.received:0} FPS · Angezeigt: {live?fps.shown:0} FPS<br/>Anzeige abhängig von Bildschirm, Browser und Verbindung.</p><button onClick={()=>{setConnection('Verbinde …');setRetry(x=>x+1);}}>Bild neu verbinden</button></article>;
 }
 
 export function SoulOnline({access,onNew}:{access:SoulAccess|null,onNew:()=>void}){
