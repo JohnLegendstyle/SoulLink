@@ -16,6 +16,13 @@ def self_test():
     classpath()
     emulator=install_root()/'Emulator'/('melonDS.app' if platform.system()=='Darwin' else 'melonDS.exe')
     find_executable(emulator)
+    from soullink.sync import tls_context
+    context=tls_context()
+    assert context.cert_store_stats()['x509_ca'] > 0
+    if '--network-check' in sys.argv:
+        import urllib.request, json
+        with urllib.request.urlopen('https://soullink-web-production.up.railway.app/health',context=context,timeout=15) as response:
+            assert json.load(response)['ok']
 
 if __name__ == "__main__":
     if '--self-test' in sys.argv:

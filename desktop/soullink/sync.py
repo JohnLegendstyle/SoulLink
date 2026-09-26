@@ -6,10 +6,16 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+import ssl
 from pathlib import Path
 from typing import Callable
 
 from .save_reader import read_save
+
+
+def tls_context() -> ssl.SSLContext:
+    import certifi
+    return ssl.create_default_context(cafile=certifi.where())
 
 
 class SyncWorker:
@@ -39,6 +45,7 @@ class SyncWorker:
             endpoint = access["baseUrl"].rstrip("/") + "/api/sync"
             if not endpoint.startswith('https://') and not endpoint.startswith('http://127.0.0.1:'):
                 raise ValueError('Die Verbindungsadresse muss HTTPS verwenden.')
+            context = tls_context()
             while not self.stop_event.is_set():
                 try:
                     state = read_save(self.save)
@@ -57,7 +64,7 @@ class SyncWorker:
                     headers={"Authorization": "Bearer " + access["token"], "Content-Type": "application/json"},
                 )
                 try:
-                    with urllib.request.urlopen(request, timeout=10) as response:
+                    with urllib.request.urlopen(request, timeout=10, context=context) as response:
                         result = json.loads(response.read())
                 except (OSError,ValueError,urllib.error.URLError):
                     self.on_status('Verbindung unterbrochen. Neuer Versuch in wenigen Sekunden …')

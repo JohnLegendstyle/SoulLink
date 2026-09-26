@@ -1,5 +1,7 @@
 # Third-party software
 
+- Certifi 2026.7.22, https://github.com/certifi/python-certifi – MPL 2.0. Unmodified Mozilla root certificates are bundled for verified HTTPS connections on both platforms.
+
 SoulLink desktop code and its Java adapter are provided under GNU GPL v3 or later; see LICENSE. No Nintendo ROM, BIOS, firmware dump or copyrighted game media is included in releases.
 
 - melonDS 1.1, https://github.com/melonDS-emu/melonDS/tree/1.1 – GNU GPL v3 or later. Original binaries are redistributed without modification. Exact tagged source is included in `Quelltexte/melonDS-1.1.zip`; its repository contains license notices for Qt, SDL and other dependencies. The displayed melonDS branding is preserved.
