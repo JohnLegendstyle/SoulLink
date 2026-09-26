@@ -593,7 +593,8 @@ class SoulLinkApp(tk.Tk):
                 player='Optimus' if value['player']=='John' else 'Bee'
                 if player in self.packs: self.save_var.set(str(self.packs[player].save))
                 self._save();self.start_sync()
-                self.sync_status.set(f'{player} verbunden. Beim nächsten Spielstart ist auch die Bildvorschau bereit.')
+                display='Anakin' if player=='Optimus' else 'Obi-Wan'
+                self.sync_status.set(f'{display} verbunden. Beim nächsten Spielstart ist auch die Bildvorschau bereit.')
         self.after(100,self.drain_events)
 
     def open_round(self) -> None:

@@ -137,7 +137,7 @@ def create_round(
     (round_dir / "runde.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
     (round_dir / "START.txt").write_text(
         "Soul Link – private Spielrunde\n\n"
-        "Optimus öffnet seinen Ordner, Eddie den Ordner Bee. "
+        "John spielt Anakin im Ordner Optimus, Eddie spielt Obi-Wan im Ordner Bee. "
         "Die Starter bitte erst im Spiel selbst auswählen.\n",
         encoding="utf-8",
     )
@@ -161,5 +161,5 @@ def load_round(manifest: Path) -> list[PlayerPack]:
             raise ValueError('ROM oder Spielstand fehlen. Bitte den ganzen Runden-Ordner öffnen.')
         packs.append(PlayerPack(p['player'], p['trainer'], rom, save, int(p['seed']), p['starters']))
     if {p.player for p in packs} != {'Optimus','Bee'} or len(packs) != 2:
-        raise ValueError('Die Runde muss Optimus und Bee enthalten.')
+        raise ValueError('Die Runde muss beide Spieler (Anakin und Obi-Wan) enthalten.')
     return packs

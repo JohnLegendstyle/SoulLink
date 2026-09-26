@@ -33,7 +33,7 @@ def pairing(on_open,on_done,on_status,stop,base=WEBSITE):
     try:
         grant=api(base,'/api/pair','POST',{})
         on_open(base+'/#'+urlencode({'pair':grant['id']}))
-        on_status('Bitte im Browser einmal Optimus oder Bee bestätigen. Danach verbindet sich die App automatisch.')
+        on_status('Bitte im Browser John (Anakin) oder Eddie (Obi-Wan) bestätigen. Danach verbindet sich die App automatisch.')
         deadline=time.monotonic()+300
         while not stop.wait(2) and time.monotonic()<deadline:
             result=api(base,'/api/pair?'+urlencode({'id':grant['id']}),token=grant['secret'])
