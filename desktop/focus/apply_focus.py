@@ -13,6 +13,11 @@ def replace(path, old, new):
 def apply(source: Path):
     replace(source/'tools/mac-libs.rb','$fallback_rpaths = []',
             '$fallback_rpaths = ENV.fetch("SOULLINK_FRAMEWORK_PATHS", "").split(File::PATH_SEPARATOR)')
+    replace(source/'tools/mac-libs.rb','fixup_libs(executable, executable)',
+            'fixup_libs(executable, executable)\n'
+            'if ENV["SOULLINK_SDL3_SOURCE"]\n'
+            '  fixup_libs(File.join(frameworks_dir, "libSDL3.dylib"), ENV["SOULLINK_SDL3_SOURCE"])\n'
+            'end')
     qt=source/'src/frontend/qt_sdl'
     window=qt/'Window.cpp'
     replace(qt/'Window.h','    void onOpenFile();','    void initFocus();\n    void focusReturn(const QString& action);\n    void finishFocusRequest();\n    void onOpenFile();')

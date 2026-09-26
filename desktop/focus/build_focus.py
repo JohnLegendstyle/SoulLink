@@ -62,6 +62,14 @@ def build(root: Path):
              '-DENABLE_LTO_RELEASE=OFF','-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0'],env=env)
         run(['cmake','--build',build_dir,'--parallel','3'],env=env)
         run([build_dir/'focus-layout-test'],env=env)
+        # Homebrew now supplies sdl2-compat, which dlopens SDL3. It does not
+        # appear in otool's dependency list; bundle it next to the SDL2 library.
+        sdl3=Path(prefixes[0])/'lib/libSDL3.dylib'
+        if sdl3.exists():
+            frameworks=build_dir/'melonDS.app/Contents/Frameworks'
+            frameworks.mkdir(exist_ok=True)
+            shutil.copy2(sdl3.resolve(),frameworks/'libSDL3.dylib')
+            env['SOULLINK_SDL3_SOURCE']=str(sdl3.resolve())
         # Upstream bundler is compatible with system Ruby 2.6 (File.exists?).
         run(['/usr/bin/ruby',source/'tools/mac-libs.rb',build_dir],env=env)
         shutil.copytree(build_dir/'melonDS.app',output/'melonDS.app',symlinks=True)
@@ -95,6 +103,7 @@ def build(root: Path):
         run([deploy,'--release','--no-translations','--no-opengl-sw',output/'melonDS.exe'],env=env)
         # Resolve all non-system dependencies recursively, not only Qt DLLs.
         available={p.name.lower():p for p in (prefix/'bin').glob('*.dll')}
+        if 'sdl3.dll' in available: shutil.copy2(available['sdl3.dll'],output/'SDL3.dll')
         pending=list(output.rglob('*.dll'))+[output/'melonDS.exe']; seen=set()
         while pending:
             binary=pending.pop()
