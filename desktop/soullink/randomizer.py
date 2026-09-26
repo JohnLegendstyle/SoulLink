@@ -69,10 +69,10 @@ def classpath() -> str:
 
 def randomize(input_rom: Path, output_rom: Path, seed: int, mode: str = 'adventure') -> list[dict[str, object]]:
     command = [
-        java_binary(), "-cp", classpath(), "soullink.StarterRandomizer",
+        java_binary(), "-Dfile.encoding=UTF-8", "-cp", classpath(), "soullink.StarterRandomizer",
         str(input_rom), str(output_rom), str(seed), mode,
     ]
-    result = subprocess.run(command, capture_output=True, text=True, timeout=180)
+    result = subprocess.run(command, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=180)
     if result.returncode:
         detail = (result.stderr or result.stdout).strip().splitlines()[-1:]
         raise RuntimeError(detail[0] if detail else "Die ROM konnte nicht randomisiert werden.")
