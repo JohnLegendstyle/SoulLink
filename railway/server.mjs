@@ -5,6 +5,7 @@ import {mkdirSync,readFileSync,existsSync} from 'node:fs';
 import path from 'node:path';
 import {onlineRoutes} from './online.mjs';
 import {siteAuth} from './auth.mjs';
+import {cloudRoutes} from './cloud.mjs';
 const dir=process.env.DATA_DIR||'./data';mkdirSync(dir,{recursive:true});
 const db=new DatabaseSync(path.join(dir,'soullink.sqlite'));db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS rooms(id TEXT PRIMARY KEY, read_hash TEXT NOT NULL,john_hash TEXT NOT NULL,eddie_hash TEXT NOT NULL,state TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL);');
 const hash=s=>createHash('sha256').update(s).digest('hex'),key=()=>randomBytes(32).toString('hex');
@@ -15,12 +16,14 @@ function blocked(s,p){const o=p==='John'?'Eddie':'John';return s[p].seen.filter(
 function clean(v,box=false){if(!v||typeof v.uid!=='string'||!v.uid.length||v.uid.length>100||!Number.isInteger(v.species)||v.species<1||v.species>493)throw Error('Ungültige Pokémon-Daten');if(box&&v.level==null)return {uid:v.uid,species:v.species,nickname:String(v.nickname||'').slice(0,30),level:null,hp:null,maxHp:null};if(!Number.isInteger(v.level)||v.level<1||v.level>100||!Number.isInteger(v.hp)||!Number.isInteger(v.maxHp)||v.maxHp<1||v.maxHp>999||v.hp<0||v.hp>v.maxHp)throw Error('Ungültige KP/Level');return{uid:v.uid,species:v.species,nickname:String(v.nickname||'').slice(0,30),level:v.level,hp:v.hp,maxHp:v.maxHp};}
 const headers={'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'};
 function send(res,status,data){res.writeHead(status,headers);res.end(JSON.stringify(data));}
-async function body(req){let s='';for await(const b of req){s+=b;if(s.length>300000)throw Error('Anfrage zu groß');}return s?JSON.parse(s):{};}
+async function body(req,limit=300000){let s='';for await(const b of req){s+=b;if(s.length>limit)throw Error('Anfrage zu groß');}return s?JSON.parse(s):{};}
 const rate=new Map();
 const online=onlineRoutes({authorize,send,body,hash,key});
 const auth=siteAuth(db,send,body);
+const cloud=cloudRoutes({db,authorize,send,body});
 const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');
 if(await auth.guard(req,res,url))return;
+if(await cloud(req,res,url))return;
 if(await online(req,res,url))return;
 if(url.pathname==='/health')return send(res,200,{ok:true});
 if(url.pathname==='/api/room'&&req.method==='POST'){

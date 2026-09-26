@@ -127,7 +127,10 @@ def _pokemon(raw: bytes, party: bool) -> Pokemon | None:
 
 
 def read_save(path: str | Path) -> SaveState:
-    data = Path(path).read_bytes()
+    return parse_save(Path(path).read_bytes())
+
+
+def parse_save(data: bytes) -> SaveState:
     if len(data) != 0x80000:
         raise ValueError("Der Spielstand muss genau 512 KiB groß sein.")
     if data == b"\xff" * len(data):

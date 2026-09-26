@@ -28,7 +28,21 @@ Standardtasten: **X = A/Bestätigen**, **Z = B/Zurück**, **S = DS-X/Menü**, **
 
 60 FPS ist normales Spieltempo. 90/120 FPS und unbegrenzt beschleunigen auch Spiel und Ton; das fügt dem Originalspiel keine neuen Animationsbilder hinzu. Die interne Auflösung macht 3D-Flächen schärfer, nicht die ursprünglichen 2D-Sprites. Bei Leistungseinbrüchen 2× oder 1× wählen. Einstellungen gelten ab dem nächsten Spielstart.
 
-**Speichert regelmäßig über SPEICHERN im Spiel.** Speichert vor dem Schließen des Spielfensters. Für einen Gerätewechsel den ganzen Runden-Ordner einschließlich `.sav` kopieren. Die mitgelieferten Checkpoints dienen nur neuen Runden und werden nie über einen bestehenden Fortschritt kopiert.
+**Speichert regelmäßig über SPEICHERN im Spiel.** Speichert vor dem Schließen des Spielfensters. Die mitgelieferten Checkpoints dienen nur neuen Runden und werden nie über einen bestehenden Fortschritt kopiert.
+
+## Zwischen Mac und Windows wechseln (ab 0.6.0)
+
+Einmalig auf beiden Geräten dieselbe aktuelle randomisierte Runde öffnen: den vollständigen Runden-Ordner einschließlich `runde.json`, `.nds` und `.sav` privat auf den zweiten Rechner kopieren. Dort **Vorhandene Runde öffnen** wählen und danach die Website als **derselbe Spieler** verbinden (John = Optimus, Eddie = Bee). Nicht auf dem zweiten Rechner eine neue Zufallsrunde erzeugen. ROMs werden nicht hochgeladen; die App prüft, dass die ROM auf beiden Geräten exakt identisch ist. Beide Geräte brauchen App-Version 0.6.0 oder neuer.
+
+Danach läuft der Spielstandabgleich automatisch:
+
+1. Vor dem Spielstart wird die Cloud geprüft und bei eindeutigem Stand die neuere Version geladen. Vor jeder lokalen Ersetzung entsteht eine vollständige Sicherung im Unterordner `Cloud-Sicherungen`.
+2. Nach **SPEICHERN im Spiel** wird die `.sav` während des Spiels regelmäßig hochgeladen. Ungespeicherter Fortschritt, Emulator-Savestates, ROMs und Grafikeinstellungen werden nicht synchronisiert.
+3. Vor dem Gerätewechsel speichern und das Spielfenster schließen. Den Launcher offen lassen, bis **Cloud gesichert · Gerätewechsel möglich** erscheint. Erst dann auf dem anderen Gerät starten.
+
+**Cloud jetzt abgleichen** erlaubt denselben Abgleich ohne Spielstart. Bei unterschiedlichen Ständen ohne gemeinsame Basis fragt die App nach: **Ja** lädt den Cloud-Stand mit lokaler Sicherung; **Nein** veröffentlicht den lokalen Stand als neue Cloud-Version; **Abbrechen** verändert nichts. Die Cloud hält die letzten zehn unterschiedlichen Spielstände pro Spieler und Website-Runde vor; lokale Sicherungen werden nicht automatisch gelöscht. Bei Verbindungsfehlern bleibt der lokale Stand erhalten; vor dem Wechsel unbedingt erneut abgleichen. Nach einem Absturz kann die Gerätesperre bis zu 90 Sekunden bestehen bleiben.
+
+Gleichzeitiges Spielen **desselben Spielers** auf zwei Geräten wird bei verbundenen aktuellen Apps blockiert. John und Eddie dürfen selbstverständlich gleichzeitig spielen. Eine laufende Sitzung lädt niemals fremde Cloud-Daten über ihren lokalen Spielstand. Alte App-Versionen oder separat gestartete Emulatoren beachten die Cloud-Sperre nicht: deshalb zum Wechseln ausschließlich die aktualisierte SoulLink-App verwenden und alle anderen Emulatorfenster schließen.
 
 ## Gemeinsamer Tracker
 

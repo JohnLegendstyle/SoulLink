@@ -17,6 +17,7 @@ from .melonds import DEFAULT_KEYS, copy_emulator, find_executable, launch, write
 from .randomizer import PlayerPack, create_round, runtime_root, load_round, install_root
 from .sync import SyncWorker
 from .online import WEBSITE, MirrorWorker, pairing, browser_url
+from .cloud import CloudSession, CloudConflict
 
 
 COLORS = {
@@ -49,7 +50,11 @@ class SoulLinkApp(tk.Tk):
         self.packs: dict[str, PlayerPack] = {}
         self.sync_worker: SyncWorker | None = None
         self.mirror_worker = None
+        self.cloud_session = None
+        self.cloud_pending = False
+        self.cloud_after_action = None
         self.pair_stop = threading.Event()
+        self.pairing_active = False
         self.processes = {}
         self.runtime = {}
         self.creating = False
@@ -66,7 +71,7 @@ class SoulLinkApp(tk.Tk):
                 self.status_var.set('Letzte Runde geladen. Ihr könnt weiterspielen.')
             except (OSError, ValueError, KeyError):
                 self.status_var.set('Letzte Runde nicht gefunden. Bitte vorhandene Runde öffnen.')
-        if self.connection_var.get() and self.save_var.get(): self.after(500,self.start_sync)
+        if self.connection_var.get(): self.sync_status.set('Verbunden · Cloud-Abgleich erfolgt vor dem Spielstart.')
 
     def _load(self) -> dict[str, object]:
         defaults: dict[str, object] = {
@@ -181,6 +186,9 @@ class SoulLinkApp(tk.Tk):
             ttk.Label(card,text=name,style='Panel.TLabel',font=('Arial',28,'bold')).pack(anchor='w',pady=(8,16))
             ttk.Button(card,text=name+' starten',style='Primary.TButton',command=lambda p=name:self.start_player(p)).pack(fill='x')
         ttk.Label(tab,textvariable=self.status_var,style='Panel.TLabel',foreground=COLORS['green'],wraplength=760).grid(row=3,column=0,columnspan=2,sticky='w',pady=(4,16))
+        self.cloud_status = tk.StringVar(value='Cloud-Spielstand: Website verbinden, dann vor jedem Spielstart automatisch abgleichen.')
+        ttk.Label(tab,textvariable=self.cloud_status,style='Panel.TLabel',foreground=COLORS['gold'],wraplength=760).grid(row=6,column=0,columnspan=2,sticky='w',pady=(10,0))
+        ttk.Button(tab,text='Cloud jetzt abgleichen · ohne Spielstart',command=self.cloud_only).grid(row=7,column=0,columnspan=2,sticky='ew',pady=(8,0))
         actions = ttk.Frame(tab, style="Panel.TFrame")
         actions.grid(row=4,column=0,columnspan=2,sticky='ew')
         actions.columnconfigure((0, 1), weight=1)
@@ -190,7 +198,7 @@ class SoulLinkApp(tk.Tk):
         ttk.Button(actions,text='Runden-Ordner anzeigen',command=self.show_output).grid(row=1,column=0,sticky='ew',padx=(0,7),pady=(10,0))
         ttk.Button(actions,text='Figuren aktualisieren',command=self.apply_character_skins).grid(row=1,column=1,sticky='ew',padx=(7,0),pady=(10,0))
         self.setup_panel=ttk.Frame(tab,style='Panel.TFrame')
-        self.setup_panel.grid(row=6,column=0,columnspan=2,sticky='ew',pady=(6,0))
+        self.setup_panel.grid(row=8,column=0,columnspan=2,sticky='ew',pady=(6,0))
         self.setup_panel.columnconfigure(1,weight=1)
         self._field(self.setup_panel,0,'Originale SoulSilver-ROM',self.rom_var,self.pick_rom)
         self._field(self.setup_panel,1,'Focus / melonDS',self.emu_var,self.pick_emulator)
@@ -260,7 +268,7 @@ class SoulLinkApp(tk.Tk):
         ttk.Label(tab, text='Spieler wird aus der Verbindungsdatei erkannt.', style='Panel.TLabel').grid(row=2,column=1,sticky='w',padx=12)
         self.sync_status = tk.StringVar(value="Nicht verbunden")
         ttk.Button(tab, text="Spielstand-Synchronisierung starten", style="Primary.TButton", command=self.start_sync).grid(row=3, column=0, columnspan=3, sticky="ew", pady=(22, 10))
-        ttk.Button(tab, text="Verbindung stoppen", command=self.stop_sync).grid(row=4, column=0, columnspan=3, sticky="ew")
+        ttk.Button(tab, text="Tracker & Bildvorschau stoppen", command=self.stop_sync).grid(row=4, column=0, columnspan=3, sticky="ew")
         ttk.Label(tab, textvariable=self.sync_status, style="Panel.TLabel", foreground=COLORS["green"], wraplength=760).grid(row=5, column=0, columnspan=3, sticky="w", pady=15)
         self.mirror_var=tk.BooleanVar(value=bool(self.settings['mirror']))
         ttk.Checkbutton(tab,text='DS-Spielbild privat auf der Website zeigen (bis 4 Bilder/s, ohne Ton)',variable=self.mirror_var,command=self.save_mirror_preference).grid(row=6,column=0,columnspan=3,sticky='w',pady=12)
@@ -270,9 +278,15 @@ class SoulLinkApp(tk.Tk):
         ttk.Button(tab,text='Gemeinsamen Tracker öffnen',command=self.open_website).grid(row=9,column=0,columnspan=3,sticky='ew')
 
     def connect_website(self):
+        if self.cloud_busy(): return
+        if self.pairing_active: return
         self.pair_stop.set();self.pair_stop=threading.Event()
-        threading.Thread(target=pairing,args=(lambda url:self.events.put(('open-web',url)),
-            lambda access:self.events.put(('paired',access)),lambda text:self.events.put(('sync',text)),self.pair_stop),daemon=True).start()
+        self.pairing_active=True
+        def work():
+            try: pairing(lambda url:self.events.put(('open-web',url)),
+                lambda access:self.events.put(('paired',access)),lambda text:self.events.put(('sync',text)),self.pair_stop)
+            finally: self.events.put(('pair-ended',None))
+        threading.Thread(target=work,daemon=True).start()
         self.sync_status.set('Website wird geöffnet …')
 
     def online_access(self):
@@ -307,6 +321,7 @@ class SoulLinkApp(tk.Tk):
         if value: self.output_var.set(value)
 
     def create_new_round(self) -> None:
+        if self.cloud_busy(): return
         if self.creating: return
         if any(p.poll() is None for p in self.processes.values()):
             messagebox.showinfo('Neue Runde','Bitte zuerst das laufende Spiel schließen.'); return
@@ -339,6 +354,7 @@ class SoulLinkApp(tk.Tk):
             messagebox.showerror("Einstellungen", str(error))
 
     def apply_character_skins(self) -> None:
+        if self.cloud_busy(): return
         if self.creating: return
         if not self.packs:
             messagebox.showinfo('Figuren','Bitte zuerst eure vorhandene Runde öffnen.'); return
@@ -363,8 +379,49 @@ class SoulLinkApp(tk.Tk):
                 self.events.put(('error',str(error)))
         threading.Thread(target=work,daemon=True).start()
 
-    def start_player(self, player: str) -> None:
+    def cloud_busy(self):
+        if self.cloud_pending or self.cloud_session or any(p.poll() is None for p in self.processes.values()):
+            messagebox.showinfo('Cloud-Spielstand','Bitte zuerst das Spielfenster schließen und den Cloud-Abgleich abwarten.')
+            return True
+        return False
+
+    def cloud_only(self):
+        access=self.online_access()
+        if not access:
+            messagebox.showinfo('Cloud-Spielstand','Bitte zuerst Website verbinden.');return
+        self.start_player('Optimus' if access['player']=='John' else 'Bee',sync_only=True)
+
+    def prepare_cloud(self, player, sync_only=False, choice=None):
+        self.cloud_pending=True
+        self.cloud_status.set('Cloud wird geprüft … Bitte noch nicht auf dem anderen Gerät starten.')
+        session=self.cloud_session
+        def work():
+            try:
+                session.prepare(choice)
+                self.events.put(('cloud-ready',(player,sync_only)))
+            except CloudConflict as error: self.events.put(('cloud-conflict',(player,sync_only,str(error))))
+            except Exception as error:
+                try: session.release()
+                except Exception: pass
+                self.events.put(('cloud-error',str(error)))
+        threading.Thread(target=work,daemon=True).start()
+
+    def finish_cloud(self):
+        session=self.cloud_session
+        if not session: return
+        self.cloud_pending=True
+        self.cloud_status.set('Letzter Spielstand wird gesichert … Bitte App noch offen lassen.')
+        def work():
+            try:
+                session.finish()
+                self.events.put(('cloud-finished',None))
+            except Exception as error: self.events.put(('cloud-error',str(error)))
+        threading.Thread(target=work,daemon=True).start()
+
+    def start_player(self, player: str, _cloud_ready=False, sync_only=False) -> None:
         try:
+            if self.cloud_pending: raise RuntimeError('Bitte den Cloud-Abgleich abwarten.')
+            if self.pairing_active: raise RuntimeError('Bitte zuerst die Website-Verbindung im Browser bestätigen.')
             pack = self.packs.get(player)
             if self.creating: raise RuntimeError('Bitte warten, bis die Runde fertig ist.')
             if player in self.processes and self.processes[player].poll() is None:
@@ -374,6 +431,19 @@ class SoulLinkApp(tk.Tk):
             if not pack:
                 raise RuntimeError("Bitte zuerst eine neue randomisierte Runde erstellen.")
             self._save()
+            access=self.online_access()
+            if self.connection_var.get() and not access:
+                raise RuntimeError('Deine Website-Verbindung ist ungültig. Bitte vor dem Spielen erneut verbinden.')
+            expected='John' if player=='Optimus' else 'Eddie'
+            if access and access.get('player')!=expected:
+                raise RuntimeError('Du bist als anderer Spieler verbunden. Bitte den eigenen Spieler starten.')
+            if access and not _cloud_ready:
+                self.stop_sync()
+                self.cloud_session=CloudSession(access,pack.save,pack.rom,config_root()/'Cloud',lambda text:self.events.put(('cloud-status',text)))
+                self.prepare_cloud(player,sync_only)
+                return
+            if sync_only:
+                self.finish_cloud();return
             source = Path(self.emu_var.get()).expanduser().resolve()
             find_executable(source)
             isolated = config_root() / 'Emulator' / player
@@ -387,9 +457,6 @@ class SoulLinkApp(tk.Tk):
             request=config_root()/'requests'/(uuid.uuid4().hex+'.json')
             request.parent.mkdir(parents=True,exist_ok=True)
             self.stop_sync()
-            access=self.online_access()
-            expected='John' if player=='Optimus' else 'Eddie'
-            if access and access.get('player')!=expected: access=None
             mirror=request.with_suffix('.jpg') if access else None
             if mirror and self.mirror_var.get(): mirror.with_name(mirror.name+'.enabled').touch()
             self.processes[player] = launch(executable, pack.rom, fullscreen=bool(self.fullscreen_var.get()),player=player,request=request,
@@ -398,16 +465,20 @@ class SoulLinkApp(tk.Tk):
             self.save_var.set(str(pack.save))
             self._save()
             if access:
+                self.cloud_session.start()
                 self.start_sync()
                 self.mirror_worker=MirrorWorker(access,mirror,lambda text:self.events.put(('mirror',text)))
                 self.mirror_worker.start()
             else: self.sync_status.set('Für diesen Spieler bitte einmal Website verbinden.')
             self.withdraw()
         except Exception as error:
+            if _cloud_ready and self.cloud_session and not self.cloud_pending and not any(p.poll() is None for p in self.processes.values()): self.finish_cloud()
             messagebox.showerror("Spiel starten", str(error))
 
     def start_sync(self) -> None:
         try:
+            if not self.cloud_session or self.cloud_pending:
+                self.sync_status.set('Cloud und Tracker werden beim Spielstart gemeinsam abgeglichen.');return
             if self.sync_worker: self.sync_worker.stop()
             self.sync_worker=None
             self._save()
@@ -428,6 +499,8 @@ class SoulLinkApp(tk.Tk):
         for player,(executable,request) in list(self.runtime.items()):
             process=self.processes[player]
             if process.poll() is None: continue
+            if self.cloud_session: self.finish_cloud()
+            if self.sync_worker: self.sync_worker.stop();self.sync_worker=None
             if self.mirror_worker:
                 flag=self.mirror_worker.frame.with_name(self.mirror_worker.frame.name+'.enabled')
                 self.mirror_var.set(flag.exists())
@@ -448,12 +521,37 @@ class SoulLinkApp(tk.Tk):
             try:
                 action=json.loads(request.read_text()).get('action')
                 request.unlink()
-                if action=='new-round': self.after(200,self.create_new_round)
-                elif action in ('start:Optimus','start:Bee'):
-                    self.after(200,lambda p=action.split(':')[1]:self.start_player(p))
+                if self.cloud_pending: self.cloud_after_action=action
+                else: self.run_after_game(action)
             except (OSError,ValueError,AttributeError): pass
         while not self.events.empty():
             kind,value = self.events.get_nowait()
+            if kind=='pair-ended': self.pairing_active=False
+            if kind=='cloud-status': self.cloud_status.set(value)
+            elif kind=='cloud-ready':
+                self.cloud_pending=False
+                self.start_player(value[0],_cloud_ready=True,sync_only=value[1])
+            elif kind=='cloud-conflict':
+                player,sync_only,detail=value
+                answer=messagebox.askyesnocancel('Spielstand auswählen',detail+'\n\nJa: Cloud-Stand laden (lokale Sicherung wird angelegt).\nNein: Lokalen Stand zur neuen Cloud-Version machen.\nAbbrechen: Nichts ändern, Spiel nicht starten.')
+                if answer is None:
+                    session=self.cloud_session
+                    def cancel():
+                        try: session.release()
+                        except Exception: pass
+                        self.events.put(('cloud-cancelled',None))
+                    threading.Thread(target=cancel,daemon=True).start()
+                else: self.prepare_cloud(player,sync_only,'cloud' if answer else 'local')
+            elif kind in ('cloud-finished','cloud-error','cloud-cancelled'):
+                self.cloud_pending=False;self.cloud_session=None
+                action=self.cloud_after_action;self.cloud_after_action=None
+                if kind=='cloud-finished':
+                    self.cloud_status.set('Cloud gesichert · Gerätewechsel möglich')
+                    self.run_after_game(action)
+                elif kind=='cloud-error':
+                    self.cloud_status.set('Nicht in der Cloud gesichert · lokaler Stand bleibt erhalten. Erneut abgleichen!')
+                    messagebox.showerror('Cloud-Spielstand',str(value)+'\n\nVor dem Gerätewechsel „Cloud jetzt abgleichen“ erneut versuchen.')
+                else: self.cloud_status.set('Abgleich abgebrochen · beide Spielstände unverändert')
             if kind in ('round','skins','error'):
                 self.creating = False
                 self.create_button.state(['!disabled'])
@@ -487,6 +585,7 @@ class SoulLinkApp(tk.Tk):
         self.after(100,self.drain_events)
 
     def open_round(self) -> None:
+        if self.cloud_busy(): return
         if self.creating:
             messagebox.showinfo('Bitte warten','Die neue Runde wird noch erstellt.'); return
         chosen = filedialog.askopenfilename(title='runde.json aus eurem Runden-Ordner öffnen',filetypes=[('Soul-Link-Runde','*.json')])
@@ -508,11 +607,17 @@ class SoulLinkApp(tk.Tk):
         else: subprocess.Popen(['open' if platform.system()=='Darwin' else 'xdg-open',str(folder)])
 
     def close(self) -> None:
+        if self.cloud_busy(): return
         if self.creating:
             messagebox.showinfo('Bitte kurz warten','Die Runde wird noch bearbeitet.'); return
         self.stop_sync()
         self.pair_stop.set()
         self.destroy()
+
+    def run_after_game(self,action):
+        if action=='new-round': self.after(200,self.create_new_round)
+        elif action in ('start:Optimus','start:Bee'):
+            self.after(200,lambda p=action.split(':')[1]:self.start_player(p))
 
     def stop_sync(self) -> None:
         if self.mirror_worker:

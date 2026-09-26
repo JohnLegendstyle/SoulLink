@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-const files = Object.fromEntries(['server.mjs','auth.mjs','online.mjs','login.html'].map(name=>[name,fs.readFileSync('railway/'+name).toString('base64')]));
+const files = Object.fromEntries(['server.mjs','auth.mjs','online.mjs','cloud.mjs','login.html'].map(name=>[name,fs.readFileSync('railway/'+name).toString('base64')]));
 function walk(dir) {
   for (const entry of fs.readdirSync(dir,{withFileTypes:true})) {
     const file=path.join(dir,entry.name);
