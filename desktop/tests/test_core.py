@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from soullink.checkpoint import named_checkpoint
-from soullink.save_reader import read_save, _active, _text, GENERAL_SIZE, PARTITION_SIZE
+from soullink.save_reader import read_save, _active, _text, _pokemon, GENERAL_SIZE, PARTITION_SIZE
 from soullink.randomizer import create_round, load_round
 from soullink.melonds import DEFAULT_KEYS, qt_key, write_config
 
@@ -15,6 +15,33 @@ CHECKPOINTS = Path(__file__).resolve().parents[1] / 'randomizer' / 'checkpoints'
 
 
 class CoreTests(unittest.TestCase):
+    def test_synthetic_party_and_box_decryption(self):
+        # Entirely synthetic data, no user-save bytes or real trainer IDs.
+        # Non-self-inverse block order 17 catches reversed permutation tables.
+        pid=(17<<13)|0x42
+        plain=bytearray(236)
+        struct.pack_into('<I',plain,0,pid)
+        struct.pack_into('<H',plain,8,63)
+        struct.pack_into('<I',plain,0x0C,0x12345678)
+        struct.pack_into('<5H',plain,0x48,0x12B,0x12C,0x13C,0x12B,0xFFFF)
+        plain[0x8C]=5
+        struct.pack_into('<HH',plain,0x8E,19,19)
+        checksum=sum(struct.unpack('<64H',plain[8:136]))&0xFFFF
+        struct.pack_into('<H',plain,6,checksum)
+        blocks=[plain[8+i*32:40+i*32] for i in range(4)]
+        raw=bytearray(plain)
+        raw[8:136]=blocks[2]+blocks[3]+blocks[1]+blocks[0]
+        for start,end,seed in ((8,136,checksum),(136,236,pid)):
+            for offset in range(start,end,2):
+                seed=(seed*0x41C64E6D+0x6073)&0xFFFFFFFF
+                struct.pack_into('<H',raw,offset,struct.unpack_from('<H',raw,offset)[0]^(seed>>16))
+        party=_pokemon(raw,True)
+        self.assertEqual((party.species,party.nickname,party.level,party.hp,party.max_hp),(63,'ABRA',5,19,19))
+        boxed=_pokemon(raw[:136],False)
+        self.assertEqual((boxed.species,boxed.nickname,boxed.uid),(63,'ABRA',f'{pid:08x}-12345678'))
+        corrupted=bytearray(raw); corrupted[30]^=1
+        self.assertIsNone(_pokemon(corrupted,True))
+
     def test_packaged_checkpoints_are_valid_and_pre_starter(self):
         for trainer in ('Optimus','Bee'):
             state = read_save(CHECKPOINTS / (trainer + '.sav'))

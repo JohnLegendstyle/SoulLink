@@ -83,10 +83,8 @@ def _decrypt(raw: bytes) -> bytearray:
         _crypt(data, 136, len(data), pid)
     order = BLOCK_POSITION[((pid >> 13) & 31) % 24]
     blocks = [bytes(data[8 + i * 32: 40 + i * 32]) for i in range(4)]
-    logical = [b""] * 4
-    for slot, logical_index in enumerate(order):
-        logical[logical_index] = blocks[slot]
-    data[8:136] = b"".join(logical)
+    # The table maps logical block -> encrypted slot, not the reverse.
+    data[8:136] = b"".join(blocks[slot] for slot in order)
     return data
 
 
