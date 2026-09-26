@@ -271,7 +271,7 @@ class SoulLinkApp(tk.Tk):
         ttk.Button(tab, text="Tracker & Bildvorschau stoppen", command=self.stop_sync).grid(row=4, column=0, columnspan=3, sticky="ew")
         ttk.Label(tab, textvariable=self.sync_status, style="Panel.TLabel", foreground=COLORS["green"], wraplength=760).grid(row=5, column=0, columnspan=3, sticky="w", pady=15)
         self.mirror_var=tk.BooleanVar(value=bool(self.settings['mirror']))
-        ttk.Checkbutton(tab,text='DS-Spielbild privat auf der Website zeigen (bis 4 Bilder/s, ohne Ton)',variable=self.mirror_var,command=self.save_mirror_preference).grid(row=6,column=0,columnspan=3,sticky='w',pady=12)
+        ttk.Checkbutton(tab,text='DS-Spielbild privat übertragen · FPS wie App · ohne Ton',variable=self.mirror_var,command=self.save_mirror_preference).grid(row=6,column=0,columnspan=3,sticky='w',pady=12)
         self.mirror_status=tk.StringVar(value='Nur das Spielbild wird übertragen, niemals der Desktop.')
         ttk.Label(tab,textvariable=self.mirror_status,style='Panel.TLabel',wraplength=750).grid(row=7,column=0,columnspan=3,sticky='w')
         ttk.Label(tab,text='Nach der Bestätigung verbindet sich die App automatisch. Teamdaten folgen nach\ndem Speichern im Spiel; K. o. nur bei gespeichertem Stand mit 0 KP.\nFür eine neue gemeinsame Spielrunde bitte auch eine neue Website-Runde verbinden.',style='Panel.TLabel',foreground=COLORS['muted']).grid(row=8,column=0,columnspan=3,sticky='w',pady=16)
@@ -453,7 +453,8 @@ class SoulLinkApp(tk.Tk):
                          volume_percent=int(self.volume_var.get()),
                          keys={name: value.get() for name, value in self.key_vars.items()},
                          save_directory=pack.rom.parent,pixel_filter=self.filter_var.get()=='Weich',
-                         integer_scaling=bool(self.integer_var.get()),screen_layout=str(self.settings['screen_layout']))
+                         integer_scaling=bool(self.integer_var.get()),screen_layout=str(self.settings['screen_layout']),
+                         pause_lost_focus=not bool(access and self.mirror_var.get()))
             request=config_root()/'requests'/(uuid.uuid4().hex+'.json')
             request.parent.mkdir(parents=True,exist_ok=True)
             self.stop_sync()

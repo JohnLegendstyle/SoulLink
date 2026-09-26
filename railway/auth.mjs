@@ -56,7 +56,7 @@ export function siteAuth(db,send,body){
       res.setHeader('Set-Cookie','soullink_session=; HttpOnly; SameSite=Lax; Secure; Path=/; Max-Age=0');send(res,200,{ok:true});return true;
     }
     // Apps use scoped bearer grants, not the website password or browser cookies.
-    if(['/api/sync','/api/frame','/api/pair','/api/cloud-save','/api/cloud-save/lease'].includes(url.pathname))return false;
+    if(['/api/sync','/api/frame','/api/live','/api/pair','/api/cloud-save','/api/cloud-save/lease'].includes(url.pathname))return false;
     if(!req.soulUser){
       if(url.pathname.startsWith('/api/'))send(res,401,{error:'Bitte auf der Website anmelden.'});
       else {res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff','Content-Security-Policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; form-action 'self'; base-uri 'none'"});res.end(readFileSync(new URL('./login.html',import.meta.url)));}

@@ -1,8 +1,10 @@
 import {randomUUID} from 'node:crypto';
+import {liveRelay} from './live.mjs';
 
 // Short-lived pairing grants and latest-only previews. No recordings on disk.
 export function onlineRoutes({authorize,send,body,hash,key}) {
   const devices=new Map(), frames=new Map(), rates=new Map();
+  const live=liveRelay({authorize,send,onFrame:(key,jpeg)=>frames.set(key,{jpeg,at:Date.now()})});
   const expire=()=>{
     const now=Date.now();
     for(const [id,d] of devices) if(d.expires<now) devices.delete(id);
@@ -11,6 +13,7 @@ export function onlineRoutes({authorize,send,body,hash,key}) {
   };
   const timer=setInterval(expire,5000);timer.unref();
   return async(req,res,url)=>{
+    if(await live.handle(req,res,url))return true;
     if(!['/api/pair','/api/pair/approve','/api/frame'].includes(url.pathname)) return false;
     expire();
     if(url.pathname==='/api/pair'&&req.method==='POST') {
@@ -42,7 +45,7 @@ export function onlineRoutes({authorize,send,body,hash,key}) {
       if(req.method==='PUT'||req.method==='DELETE') {
         if(a.role==='read') {send(res,403,{error:'Nur der Spieler darf sein Bild übertragen.'});return true;}
         const frameKey=id+':'+a.role;
-        if(req.method==='DELETE') {frames.delete(frameKey);send(res,200,{ok:true});return true;}
+        if(req.method==='DELETE') {frames.delete(frameKey);live.clear(frameKey);send(res,200,{ok:true});return true;}
         const previous=frames.get(frameKey);
         if(previous&&Date.now()-previous.at<200) {send(res,429,{error:'Maximal fünf Bilder pro Sekunde.'});return true;}
         if(req.headers['content-type']!=='image/jpeg') {send(res,415,{error:'JPEG erforderlich.'});return true;}
@@ -51,7 +54,7 @@ export function onlineRoutes({authorize,send,body,hash,key}) {
         const jpeg=Buffer.concat(chunks);
         if(jpeg.length<4||jpeg[0]!==255||jpeg[1]!==216||jpeg.at(-2)!==255||jpeg.at(-1)!==217) {send(res,400,{error:'Ungültiges Bild.'});return true;}
         if(!previous&&frames.size>=100) {send(res,503,{error:'Vorschau ausgelastet.'});return true;}
-        frames.set(frameKey,{jpeg,at:Date.now()});send(res,200,{ok:true});return true;
+        live.publish(frameKey,jpeg,4);send(res,200,{ok:true});return true;
       }
       if(req.method==='GET') {
         const role=url.searchParams.get('player');

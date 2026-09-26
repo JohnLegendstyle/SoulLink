@@ -69,6 +69,7 @@ def write_config(
     pixel_filter: bool = False,
     integer_scaling: bool = False,
     screen_layout: str = 'focus',
+    pause_lost_focus: bool = True,
 ) -> Path:
     if not 1 <= scale <= 16:
         raise ValueError("Die Auflösung muss zwischen 1× und 16× liegen.")
@@ -85,7 +86,7 @@ def write_config(
 
     # A complete, deterministic portable profile avoids changing the user's
     # normal melonDS configuration and behaves identically on Windows/macOS.
-    config = f'''PauseLostFocus = true
+    config = f'''PauseLostFocus = {str(pause_lost_focus).lower()}
 AudioSync = {str(fps == 60).lower()}
 FastForwardFPS = 1000.0
 LimitFPS = {str(fps != 0).lower()}

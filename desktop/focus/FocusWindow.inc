@@ -119,10 +119,10 @@ void MainWindow::initFocus()
         auto* mirror=button("Vorschau an",header);header->addWidget(mirror);
         auto refresh=[mirror,mirrorPath]{mirror->setText(QFileInfo::exists(mirrorPath+".enabled")?"Vorschau an":"Vorschau aus");};
         refresh();
-        connect(mirror,&QPushButton::clicked,this,[mirrorPath,refresh]{
+        connect(mirror,&QPushButton::clicked,this,[this,mirrorPath,refresh]{
             const QString flag=mirrorPath+".enabled";
             if(QFileInfo::exists(flag)) QFile::remove(flag);
-            else {QSaveFile f(flag);if(f.open(QIODevice::WriteOnly)){f.write("on");f.commit();}}
+            else {QSaveFile f(flag);if(f.open(QIODevice::WriteOnly)){f.write("on");f.commit();globalCfg.SetBool("PauseLostFocus",false);}}
             refresh();
         });
     }

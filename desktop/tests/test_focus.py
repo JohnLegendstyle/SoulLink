@@ -5,6 +5,11 @@ from soullink.melonds import DEFAULT_KEYS, write_config, read_runtime_settings, 
 
 
 class FocusTests(unittest.TestCase):
+    def test_streaming_can_continue_when_browser_has_focus(self):
+        import tomllib
+        with tempfile.TemporaryDirectory() as temp:
+            config=write_config(Path(temp)/'melonDS.exe',scale=4,fps=120,volume_percent=80,keys=DEFAULT_KEYS,save_directory=Path(temp)/'saves',pause_lost_focus=False)
+            self.assertFalse(tomllib.loads(config.read_text())['PauseLostFocus'])
     def test_graphics_settings_roundtrip(self):
         with tempfile.TemporaryDirectory() as temp:
             exe=Path(temp)/'melonDS.exe'

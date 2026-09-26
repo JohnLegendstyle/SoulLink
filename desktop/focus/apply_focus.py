@@ -34,18 +34,18 @@ def apply(source: Path):
     replace(qt/'Screen.cpp','#include "version.h"',
             '#include "version.h"\n#include <QSaveFile>\n#include <QFileInfo>\n#include "FocusCapture.inc"')
     replace(qt/'Screen.cpp','    glContext->SwapBuffers();',
-            '    if (emuThread->emuIsActive()) focusCaptureGame(w,h);\n    glContext->SwapBuffers();')
+            '    if (emuThread->emuIsActive()) focusCaptureGame(w,h,emuInstance->doLimitFPS?qRound(emuInstance->targetFPS):0);\n    glContext->SwapBuffers();')
     shutil.copy2(Path(__file__).with_name('FocusCapture.inc'),qt/'FocusCapture.inc')
     # The macOS bundler must include Qt's JPEG encoder for private previews.
     replace(bundler,'  "imageformats/libqsvg.dylib"','  "imageformats/libqsvg.dylib",\n  "imageformats/libqjpeg.dylib"')
     window=qt/'Window.cpp'
     replace(qt/'Window.h','    void onOpenFile();','    void initFocus();\n    void focusReturn(const QString& action);\n    void finishFocusRequest();\n    void onOpenFile();')
     replace(window,'    updateMPInterface(MPInterface::GetType());\n}', '    updateMPInterface(MPInterface::GetType());\n    initFocus();\n}')
-    replace(window,'    QMainWindow::closeEvent(event);','    finishFocusRequest();\n    QMainWindow::closeEvent(event);')
+    replace(window,'    QMainWindow::closeEvent(event);','    focusStopCapture();\n    finishFocusRequest();\n    QMainWindow::closeEvent(event);')
     replace(window,'    setWindowTitle(title);','''    setWindowTitle("Soul Link · Focus · " + qEnvironmentVariable("SOULLINK_PLAYER", "Optimus"));
     if (auto* status = findChild<QLabel*>("focusStatus"))
         status->setText(title.replace("melonDS " MELONDS_VERSION, "SoulSilver"));''')
-    replace(window,'#include <QApplication>','#include <QApplication>\n#include <QLabel>')
+    replace(window,'#include <QApplication>','#include <QApplication>\n#include <QLabel>\nvoid focusStopCapture();')
     replace(window,'            menuBar()->setFixedHeight(menuBarHeight);','            menuBar()->setFixedHeight(0);')
     # Keep the original GL panel/window/thread ownership; only add Qt toolbars.
     with window.open('a') as stream: stream.write('\n#include "FocusWindow.inc"\n')
