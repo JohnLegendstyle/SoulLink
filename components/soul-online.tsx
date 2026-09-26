@@ -40,7 +40,7 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
         const frame=encoded.shift()!;const epoch=generation;
         const next=await createImageBitmap(new Blob([frame.bytes],{type:'image/jpeg'}));
         if(!active||epoch!==generation){next.close();continue;}
-        decoded.push({image:next,due:frame.due});if(decoded.length>12)decoded.shift()!.image.close();
+        decoded.push({image:next,due:frame.due});if(decoded.length>32)decoded.shift()!.image.close();
       }}catch{}finally{decoding=false;}
     }
     function draw(){
@@ -78,7 +78,9 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
                 // never fabricates frames or grows into a delayed recording.
                 lastDue=Math.min(now+150,Math.max(now+50,lastDue+(configured?1000/configured:0)));
                 encoded.push({bytes:pending.slice(8,size+8) as Uint8Array<ArrayBuffer>,due:lastDue});
-                if(encoded.length>12)encoded.shift();
+                // Keep enough frames for the 150 ms playout window at 120 FPS.
+                // A shorter queue discards frames before they become due.
+                if(encoded.length>32)encoded.shift();
               }
               else if(kind===0)offline();
               pending=pending.subarray(size+8);
