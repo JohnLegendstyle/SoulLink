@@ -11,6 +11,18 @@ def replace(path, old, new):
 
 
 def apply(source: Path):
+    # Retain the original install name: modern ICU uses @loader_path aliases,
+    # while the upstream bundler copies the resolved, fully-versioned filename.
+    bundler=source/'tools/mac-libs.rb'
+    replace(bundler,'.map { |it| expand_load_path(orig_path, it) }',
+            '.map { |it| [*expand_load_path(orig_path, it), it] }')
+    replace(bundler,'    libpath, libtype = lib','    libpath, libtype, loadname = lib')
+    replace(bundler,'''      unless libtype == :rpath
+        changes += [:change, libpath, File.join("@rpath", fwname, fwlib)]
+      end''','''      changes += [:change, loadname, File.join("@rpath", fwname, fwlib)]''')
+    replace(bundler,'''      if libtype == :absolute
+        changes += [:change, libpath, File.join("@rpath", libname)]
+      end''','''      changes += [:change, loadname, File.join("@rpath", libname)]''')
     replace(source/'tools/mac-libs.rb','$fallback_rpaths = []',
             '$fallback_rpaths = ENV.fetch("SOULLINK_FRAMEWORK_PATHS", "").split(File::PATH_SEPARATOR)')
     replace(source/'tools/mac-libs.rb','fixup_libs(executable, executable)',
