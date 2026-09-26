@@ -52,6 +52,17 @@ test('private login, shared room, pairing, scopes, preview expiry and persistenc
     await request(frame,{method:'DELETE',token:bee.Eddie});assert.equal((await request(frame+'&player=John',{token:room.readToken})).status,200);
     await new Promise(r=>setTimeout(r,6200));assert.equal((await request(frame+'&player=John',{token:room.readToken})).status,204);
     assert.equal((await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,heartbeat:true}})).status,200);
+    const pokemon=uid=>({uid,species:25,nickname:'Test',level:5,hp:20,maxHp:20});
+    for(const [role,token,uid] of [['John',room.John,'test-optimus'],['Eddie',bee.Eddie,'test-bee']]){
+      assert.equal((await request('/api/sync',{method:'POST',token,data:{roomId:room.id,sessionId:'test',sequence:0,party:[pokemon(uid)],owned:[pokemon(uid)],fainted:[]}})).status,200);
+    }
+    const dead={...pokemon('test-optimus'),hp:0};
+    await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:1,party:[dead],owned:[dead],fainted:[dead.uid]}});
+    const heartbeat=await (await request('/api/sync',{method:'POST',token:bee.Eddie,data:{roomId:room.id,heartbeat:true}})).json();
+    assert.deepEqual(heartbeat.blocked,['test-bee']);assert.equal(heartbeat.partnerOnline,true);
+    assert.equal((await request('/api/room',{method:'PATCH',cookie:john,token:room.readToken,data:{id:room.id,pair:0,name:'Test-Paar'}})).status,200);
+    const state=(await (await request('/api/room?id='+room.id,{cookie:john,token:room.readToken})).json()).state;
+    assert.equal(state.names['0'],'Test-Paar');assert.deepEqual(state.John.dead,['test-optimus']);
     await stop();await start();john=await login('John');eddie=await login('Eddie');
     assert.equal((await (await request('/api/account',{cookie:eddie})).json()).access.id,room.id);
     assert.equal((await (await request('/api/account',{cookie:john})).json()).access.John,room.John);
