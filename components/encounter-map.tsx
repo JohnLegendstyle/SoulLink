@@ -3,14 +3,19 @@ import {useState} from 'react';
 import {places,routeLines,evidence,placeStatus,statusLabels,type CatchMember,type CatchStatus} from '@/lib/encounters.mjs';
 import type {SoulAccess} from './soul-online';
 import {RegionTerrain} from './region-terrain';
+import {mapSections} from '@/lib/map-sections.mjs';
 const colors:Record<CatchStatus,string>={caught:'#78dab2',missed:'#ee989d',open:'#f0c979',unknown:'#4b6070'};
 const players=['John','Eddie'] as const;
 const names={John:'Anakin',Eddie:'Obi-Wan'};
-export function EncounterMap({access,members,onChange}:{access:SoulAccess|null,members:Record<'John'|'Eddie',CatchMember>,onChange:(player:'John'|'Eddie',encounters:CatchMember['encounters'])=>void}){
+type LivePosition={mapId:number,receivedAt?:number};
+type MapMember=CatchMember&{position?:LivePosition|null};
+export function EncounterMap({access,members,onChange}:{access:SoulAccess|null,members:Record<'John'|'Eddie',MapMember>,onChange:(player:'John'|'Eddie',encounters:CatchMember['encounters'])=>void}){
   const [region,setRegion]=useState<'Johto'|'Kanto'>('Johto'),[selected,setSelected]=useState(177),[query,setQuery]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const place=places.find(p=>p.id===selected)!;
   const visible=places.filter(p=>p.region===region);
   const unknown=players.map(p=>members[p].seen.filter(m=>!m.metLocation).length);
+  const locations=Object.fromEntries(players.map(player=>{const position=members[player].position;const section=position?mapSections[position.mapId]:null;return [player,{position,place:places.find(item=>item.id===section),live:!!position&&Date.now()-(position.receivedAt||0)<5000}];})) as Record<'John'|'Eddie',{position?:LivePosition|null,place?:typeof places[number],live:boolean}>;
+  function follow(player:'John'|'Eddie'){const current=locations[player].place;if(!current)return;setRegion(current.region as 'Johto'|'Kanto');setSelected(current.id);setQuery('');}
   async function mark(player:'John'|'Eddie',status:string){
     if(!access?.[player])return;setBusy(true);setError('');
     try{const r=await fetch('/api/encounters',{method:'PATCH',headers:{Authorization:'Bearer '+access[player],'Content-Type':'application/json'},body:JSON.stringify({id:access.id,location:selected,status})});const d=await r.json() as {error?:string,encounters:CatchMember['encounters']};if(!r.ok)throw Error(d.error||'Markierung nicht gespeichert.');onChange(player,d.encounters);}
@@ -18,6 +23,7 @@ export function EncounterMap({access,members,onChange}:{access:SoulAccess|null,m
   }
   return <section className="catch-map" aria-labelledby="catch-title">
     <div className="catch-heading"><div><p className="eyebrow">EUER FANGBUCH</p><h2 id="catch-title">Eine Reise. Zwei Spuren.</h2><p>Wo habt ihr bereits ein Pokémon erhalten? Jeder Punkt zeigt links Anakin, rechts Obi-Wan.</p></div><div className="catch-tabs">{(['Johto','Kanto'] as const).map(r=><button key={r} aria-pressed={region===r} onClick={()=>{setRegion(r);setSelected(r==='Johto'?177:149);setQuery('');}}>{r}</button>)}</div></div>
+    <div className="position-switch" aria-label="Spielerposition auswählen">{players.map(player=><button key={player} disabled={!locations[player].place} onClick={()=>follow(player)}><b>{names[player]}</b><span>{locations[player].place?.name||'Position noch nicht verfügbar'}</span><i className={locations[player].live?'position-live':''}>{locations[player].live?'LIVE':'—'}</i></button>)}</div>
     <div className="catch-legend">{(Object.keys(colors) as CatchStatus[]).map(s=><span key={s}><i style={{background:colors[s]}}/>{statusLabels[s]}</span>)}</div>
     <div className="catch-layout"><div className="catch-chart" tabIndex={0} aria-label="Karte horizontal verschiebbar">
       <svg viewBox="0 0 860 640" aria-label={`${region}: schematische Fangkarte`}>
@@ -27,6 +33,7 @@ export function EncounterMap({access,members,onChange}:{access:SoulAccess|null,m
           <rect className="catch-marker" x="-17" y="-15" width="34" height="30" rx="2" fill="#f8f0d0" stroke={selected===p.id?'#a53f39':'#425f57'} strokeWidth={selected===p.id?4:2}/><rect x="-13" y="-11" width="12" height="22" fill={colors[a]}/><rect x="1" y="-11" width="12" height="22" fill={colors[b]}/>
           <text y={p.id>=149&&p.id<=196?4:29} textAnchor="middle" fill={p.id>=149&&p.id<=196?'#ffffff':'#263e35'} fontSize={p.id>=149&&p.id<=196?12:10} fontWeight="bold" paintOrder="stroke" stroke={p.id>=149&&p.id<=196?'#263e35':'#f5edce'} strokeWidth="3">{p.name.replace('Route ','')}</text>
         </g>;})}
+        {players.map((player,index)=>{const current=locations[player];if(!current.place||current.place.region!==region)return null;const other=players[index?0:1];const together=locations[other].place?.id===current.place.id;const dx=together?(index?14:-14):0;return <g key={player} className={'map-player '+player.toLowerCase()+(current.live?' is-live':'')} transform={`translate(${current.place.x+dx} ${current.place.y-28})`} aria-label={`${names[player]} ist bei ${current.place.name}`}><circle r="13"/><text y="5" textAnchor="middle">{player==='John'?'A':'O'}</text></g>;})}
       </svg>
     </div><aside className="catch-detail"><label htmlFor="catch-search">Route oder Ort suchen</label><input id="catch-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="z. B. Route 29"/><select aria-label="Ort auswählen" value={selected} onChange={e=>setSelected(Number(e.target.value))}>{visible.filter(p=>p.name.toLowerCase().includes(query.toLowerCase())||p.id===selected).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
       <h3>{place.name}</h3>{players.map(player=>{const mons=evidence(members[player],selected),status=placeStatus(members[player],selected);return <div className="catch-player" key={player}><strong>{names[player]}</strong><p style={{color:colors[status]}}>{statusLabels[status]}</p>{mons.length>0&&<ul>{mons.map(m=><li key={m.uid}>{m.nickname||`Pokémon #${m.species}`}</li>)}</ul>}{mons.length>1&&<p className="catch-warning">Mehrere Pokémon von diesem Ort – Erstfang-Regel prüfen.</p>}{access?.[player]&&<label>Markierung<select disabled={busy} value={members[player].encounters?.[selected]?.status||'auto'} onChange={e=>void mark(player,e.target.value)}><option value="auto">Automatische Erkennung</option><option value="caught">Fang manuell bestätigt</option><option value="missed">Begegnung verpasst</option><option value="open">Noch offen (manuell)</option></select></label>}</div>;})}

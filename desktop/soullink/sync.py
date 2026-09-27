@@ -19,10 +19,11 @@ def tls_context() -> ssl.SSLContext:
 
 
 class SyncWorker:
-    def __init__(self, connection: Path, save: Path, on_status: Callable[[str], None], team: Path | None = None):
+    def __init__(self, connection: Path, save: Path, on_status: Callable[[str], None], team: Path | None = None, position: Path | None = None):
         self.connection = connection
         self.save = save
         self.team = team
+        self.position = position
         self.on_status = on_status
         self.stop_event = threading.Event()
         self.thread: threading.Thread | None = None
@@ -47,27 +48,42 @@ class SyncWorker:
             if not endpoint.startswith('https://') and not endpoint.startswith('http://127.0.0.1:'):
                 raise ValueError('Die Verbindungsadresse muss HTTPS verwenden.')
             context = tls_context()
+            last_full_key = object()
+            last_state = None
+            last_live = False
             while not self.stop_event.is_set():
-                try:
-                    state = read_save(self.save)
-                except (OSError,ValueError):
-                    self.on_status('Warte auf einen vollständig gespeicherten Spielstand …')
-                    self.stop_event.wait(2)
-                    continue
-                live=False
-                if self.team:
+                position=None
+                if self.position:
                     try:
-                        from .live_team import read_team
-                        state=read_team(self.team,state);live=True
+                        from .live_position import read_position
+                        position=read_position(self.position)
                     except (OSError,ValueError):pass
-                self.fainted.update(p.uid for p in state.party if p.hp == 0)
-                payload = {
-                    "roomId": access["roomId"], "sessionId": self.session,
-                    "sequence": self.sequence, "party": [p.api() for p in state.party],
-                    "owned": [p.api() for p in state.owned], "fainted": sorted(self.fainted),
-                    "teamSource": "live" if live else "save",
-                    "teamCapturedAt": int((self.team if live else self.save).stat().st_mtime*1000),
-                }
+                try:
+                    full_key=(self.save.stat().st_mtime_ns,self.team.stat().st_mtime_ns if self.team and self.team.is_file() else None)
+                except OSError:
+                    full_key=None
+                full=last_full_key!=full_key
+                live=False;state=None
+                if full:
+                    try:
+                        state=read_save(self.save)
+                    except (OSError,ValueError):
+                        self.on_status('Warte auf einen vollständig gespeicherten Spielstand …')
+                        self.stop_event.wait(1)
+                        continue
+                    if self.team:
+                        try:
+                            from .live_team import read_team
+                            state=read_team(self.team,state);live=True
+                        except (OSError,ValueError):pass
+                    self.fainted.update(p.uid for p in state.party if p.hp == 0)
+                    payload={"roomId":access["roomId"],"sessionId":self.session,"sequence":self.sequence,
+                             "party":[p.api() for p in state.party],"owned":[p.api() for p in state.owned],
+                             "fainted":sorted(self.fainted),"teamSource":"live" if live else "save",
+                             "teamCapturedAt":int((self.team if live else self.save).stat().st_mtime*1000)}
+                else:
+                    payload={"roomId":access["roomId"],"heartbeat":True}
+                if position:payload['position']=position
                 request = urllib.request.Request(
                     endpoint, data=json.dumps(payload).encode(), method="POST",
                     headers={"Authorization": "Bearer " + access["token"], "Content-Type": "application/json"},
@@ -79,12 +95,20 @@ class SyncWorker:
                     self.on_status('Verbindung unterbrochen. Neuer Versuch in wenigen Sekunden …')
                     self.stop_event.wait(5)
                     continue
-                self.sequence += 1
+                if full:
+                    self.sequence += 1
+                    last_full_key=full_key
+                    last_state=state
+                    last_live=live
+                else:
+                    state=last_state
+                    live=last_live
                 partner = "Partner online" if result.get("partnerOnline") else "Partner nicht verbunden"
                 blocked = set(result.get('blocked',[]))
-                locked = [p.nickname or f'Pokémon #{p.species}' for p in state.party if p.uid in blocked]
+                locked = [p.nickname or f'Pokémon #{p.species}' for p in state.party if p.uid in blocked] if state else []
                 notice = ' · GESPERRT: ' + ', '.join(locked) if locked else ''
-                self.on_status(f"{'Live-Team · alle 25 Sekunden' if live else 'Letzter gespeicherter Teamstand'} · {partner}{notice}")
-                self.stop_event.wait(2)
+                location=' · Position live' if position else ''
+                self.on_status(f"{'Live-Team · alle 25 Sekunden' if live else 'Tracker verbunden'}{location} · {partner}{notice}")
+                self.stop_event.wait(1)
         except (OSError, ValueError, KeyError, urllib.error.URLError) as error:
             self.on_status(f"Synchronisierung pausiert: {error}")

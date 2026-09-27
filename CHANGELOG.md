@@ -1,6 +1,14 @@
 # Versionen und Änderungen
 
-## [0.13.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.13.0)
+## [0.14.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.0)
+
+27.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Live-Kartenmarker für Anakin und Obi-Wan mit ungefähr sekündlichem, kleinem Positionssignal ohne Bild oder Ton. Lokale Ansichten **Karte mittig**, **Fangbuch groß** und **Discord-Platz**. Das aktuelle Team zeigt HGSS-Typen, defensive Schwächen einschließlich ×4 sowie offensive Typvorteile. Bestehende Website-Runde, Spielstände und Tastenprofile bleiben erhalten. [Update-Schritte und Grenzen](releases/v0.14.0.md).
+
+Geprüft: 67 Desktop-Tests, 17 Website-/Protokolltests, Typprüfung, beide Website-Builds und sichtbare Browserprüfung der mittigen Kartenansicht.
+
+## [0.13.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.13.0)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 

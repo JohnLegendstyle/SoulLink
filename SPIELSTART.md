@@ -1,8 +1,8 @@
 # Soul Link · Anakin und Obi-Wan
 
-## Update 0.13: Discord statt Bildübertragung
+## Update 0.14: Live-Karte, Typenhilfe und Discord-Ansicht
 
-Die eingebaute Bildübertragung wurde entfernt. In älteren noch laufenden Apps bitte **Übertragung stoppen** drücken, anschließend in einer Spielpause auf 0.13.0 aktualisieren. Die Website lehnt alte Bild-Uploads ab. Teams, Fangkarte und Cloud-Spielstände bleiben aktiv. Rechts lässt sich ein Discord-Platzhalter einblenden (bei Eddie standardmäßig an); Discord als eigenes Fenster darüberlegen. „Breiter/Schmaler“ ändert die Breite, die untere rechte Ecke die Höhe. Kein eingebetteter Stream. Website neu laden. Die folgenden Hinweise zu älteren Bildübertragungs-Versionen sind historisch.
+Die eingebaute Bildübertragung wurde entfernt. Für die Live-Position auf der Karte aktualisieren beide in einer Spielpause auf **0.14.0**. Spielstände, Website-Runde und eigene Tastenprofile bleiben erhalten. Die Website lehnt alte Bild-Uploads ab. Teams, Fangkarte und Cloud-Spielstände bleiben aktiv. Oben wählt jeder Browser seine eigene Ansicht: **Karte mittig**, **Fangbuch groß** oder **Discord-Platz**. Kein eingebetteter Stream.
 
 ## Update 0.12.1: eigene Tasten behalten
 
@@ -21,7 +21,8 @@ Zum Wechsel **im Spiel speichern**, Spielfenster schließen und Cloud-Abgleich a
 ## Update 0.10: neuer Pixelstil, Fangkarte und Teams am Spielbild
 
 - Alle 45 vorhandenen Jedi-Designs sind im freigegebenen Pixelstil überarbeitet, einschließlich Anakin und Obi-Wan. Plo Koons und Yodas bestätigte Vorderansichten bleiben erhalten. Lauf-/Rennfiguren sowie vordere und hintere Trainer-Kampfbilder sind enthalten; die bisherigen Grenzen bei Fahrrad, Surfen, Angeln und Trainerpass bleiben bestehen.
-- Die Website zeigt neben jedem Spielbild die sechs aktuellen Teamplätze, Level, KP und Partnersperren. Die Live-Daten kommen etwa alle 25 Sekunden; ein veralteter oder gespeicherter Stand wird entsprechend beschriftet.
+- Die Website zeigt für beide Spieler die sechs aktuellen Teamplätze, Level, KP, Typen, Schwächen, offensive Typvorteile und Partnersperren. Die Teamdaten kommen etwa alle 25 Sekunden; ein veralteter oder gespeicherter Stand wird entsprechend beschriftet.
+- Ab App 0.14.0 erscheinen Anakin und Obi-Wan als Marker auf der Fangkarte. Nur Karten-ID, Koordinaten, Blickrichtung und Zeitpunkt werden ungefähr jede Sekunde übertragen; kein Bild und kein Ton. Mit dem jeweiligen Spielerknopf springt die Karte zu seiner Region und Route.
 - Die Johto-/Kanto-Karte zeigt pro Ort links Anakin, rechts Obi-Wan. Ab App 0.10 werden Herkunftsorte vorhandener Team- und Box-Pokémon mitgesendet. Bereits erfasste Pokémon bleiben im Fangbuch, auch wenn sie später aus dem Team verschwinden. Boxen benötigen weiterhin reguläres Speichern.
 - Grün bedeutet Fang/Erhalt erkannt (auch Starter und Geschenke können dazugehören), grau bedeutet **kein Fang erfasst**, nicht automatisch noch frei. Eier und Pokémon aus anderen Editionen werden nicht als HGSS-Fang gewertet. Verpasste Erstbegegnungen selbst rot markieren; manuelle Markierungen lassen sich wieder auf automatische Erkennung stellen. Nur der eigene angemeldete Spieler kann seine Markierungen ändern.
 

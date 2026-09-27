@@ -16,6 +16,7 @@ class FocusTests(unittest.TestCase):
             environment=start.call_args.kwargs['env']
             self.assertNotIn('SOULLINK_MIRROR',environment)
             self.assertEqual(environment['SOULLINK_TEAM'],str(request.with_suffix('.team')))
+            self.assertEqual(environment['SOULLINK_POSITION'],str(request.with_suffix('.position')))
 
     def test_portable_update_uses_new_bundled_emulator(self):
         from soullink.melonds import preferred_emulator

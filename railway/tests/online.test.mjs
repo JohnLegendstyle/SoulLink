@@ -54,11 +54,13 @@ test('private login, pairing, retired video endpoints, teams and persistence',as
     }
     const dead={...pokemon('test-optimus'),hp:0};
     await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:1,party:[dead],owned:[dead],fainted:[dead.uid]}});
-    const heartbeat=await (await request('/api/sync',{method:'POST',token:bee.Eddie,data:{roomId:room.id,heartbeat:true}})).json();
+    const position={mapId:33,x:704,y:422,direction:1,capturedAt:Date.now()};
+    const heartbeat=await (await request('/api/sync',{method:'POST',token:bee.Eddie,data:{roomId:room.id,heartbeat:true,position}})).json();
     assert.deepEqual(heartbeat.blocked,['test-bee']);assert.equal(heartbeat.partnerOnline,true);
+    assert.equal((await request('/api/sync',{method:'POST',token:bee.Eddie,data:{roomId:room.id,heartbeat:true,position:{...position,direction:9}}})).status,400);
     assert.equal((await request('/api/room',{method:'PATCH',cookie:john,token:room.readToken,data:{id:room.id,pair:0,name:'Test-Paar'}})).status,200);
     const state=(await (await request('/api/room?id='+room.id,{cookie:john,token:room.readToken})).json()).state;
-    assert.equal(state.names['0'],'Test-Paar');assert.deepEqual(state.John.dead,['test-optimus']);
+    assert.equal(state.names['0'],'Test-Paar');assert.deepEqual(state.John.dead,['test-optimus']);assert.deepEqual(state.Eddie.position.mapId,33);
     // Location metadata enriches existing identities without reordering pairs.
     const caught={...pokemon('test-optimus'),metLocation:177,originGame:8,isEgg:false,eggLocation:0};
     await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:2,party:[caught],owned:[caught],fainted:[]}});

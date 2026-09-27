@@ -583,7 +583,7 @@ class SoulLinkApp(tk.Tk):
                 if expected not in self.packs or Path(self.save_var.get()).resolve()!=self.packs[expected].save.resolve():
                     self.sync_status.set('Diese Website-Verbindung gehört zum anderen Spieler.');return
             request=self.runtime.get(expected,(None,None))[1] if access else None
-            self.sync_worker = SyncWorker(Path(self.connection_var.get()), Path(self.save_var.get()), lambda text: self.events.put(('sync',text)),team=request.with_suffix('.team') if request else None)
+            self.sync_worker = SyncWorker(Path(self.connection_var.get()), Path(self.save_var.get()), lambda text: self.events.put(('sync',text)),team=request.with_suffix('.team') if request else None,position=request.with_suffix('.position') if request else None)
             self.sync_worker.start()
             self.sync_status.set("Verbindung wird aufgebaut …")
         except Exception as error:
