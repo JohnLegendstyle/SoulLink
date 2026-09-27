@@ -6,6 +6,8 @@ import stat
 import tempfile
 import unittest
 from unittest.mock import patch
+from unittest.mock import Mock
+from types import SimpleNamespace
 import zipfile
 from soullink import updater as u
 
@@ -81,5 +83,19 @@ class UpdaterTests(unittest.TestCase):
             previous=set(root.iterdir());info['sha256']='0'*64
             with self.assertRaises(ValueError):u.prepare(info,root)
             self.assertEqual(set(root.iterdir()),previous)
+
+    def test_switch_blocked_by_game_cloud_and_other_work(self):
+        from soullink.app import SoulLinkApp
+        for pending,session,running in [(True,None,False),(False,object(),False),(False,None,True)]:
+            app=SimpleNamespace(cloud_pending=pending,cloud_session=session,
+                processes={'player':Mock(poll=Mock(return_value=None if running else 0))})
+            with patch('soullink.app.messagebox.showinfo'):
+                self.assertTrue(SoulLinkApp.cloud_busy(app))
+        for busy,creating,pairing in [(True,False,False),(False,True,False),(False,False,True)]:
+            app=SimpleNamespace(update_ready=Path('/not-started'),update_busy=False,
+                cloud_busy=lambda:busy,creating=creating,pairing_active=pairing)
+            with patch('soullink.app.messagebox.showinfo'),patch('soullink.app.subprocess.Popen') as start,patch('soullink.app.messagebox.askyesno') as confirm:
+                SoulLinkApp.activate_update(app)
+                start.assert_not_called();confirm.assert_not_called()
 
 if __name__=='__main__':unittest.main()
