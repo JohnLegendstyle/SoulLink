@@ -218,6 +218,7 @@ class SoulLinkApp(tk.Tk):
             messagebox.showinfo('Bitte warten','Rundenbearbeitung oder Website-Verbindung noch nicht abgeschlossen.');return
         if not messagebox.askyesno('Zur neuen App wechseln','Spiel gespeichert und Cloud-Abgleich abgeschlossen?\n\nDie neue Version wird gestartet und dieser Launcher geschlossen. Die alte App bleibt als Rückfalloption erhalten.'): return
         try:
+            self.persist_controls(self.player_var.get())
             self._save()
             app=Path(self.update_ready)
             if not app.resolve().is_relative_to((config_root()/'Updates').resolve()): raise ValueError('Ungültiger Update-Pfad.')
