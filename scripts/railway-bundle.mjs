@@ -16,5 +16,5 @@ walk('railway-dist/public');
 const encoded=zlib.gzipSync(Buffer.from(JSON.stringify(files))).toString('base64');
 const variables={};
 const chunks=Math.ceil(encoded.length/16000);
-for(let i=0;i<Math.max(chunks,15);i++) variables['SOULLINK_BUNDLE_'+String(i).padStart(3,'0')]=encoded.slice(i*16000,(i+1)*16000);
+for(let i=0;i<Math.max(chunks,17);i++) variables['SOULLINK_BUNDLE_'+String(i).padStart(3,'0')]=encoded.slice(i*16000,(i+1)*16000);
 process.stdout.write(JSON.stringify(variables));

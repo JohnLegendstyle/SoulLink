@@ -1,5 +1,10 @@
 # Versionen und Änderungen
 
+## Website · 27.09.2026 (kein App-Update erforderlich)
+
+- Volle Fensterbreite; Anakins Team links neben seinem Spielbild, Obi-Wans Team rechts.
+- Fehlende Fangorte bekannter Pokémon werden aus bereits gespeicherten Cloud-Spielständen nachgetragen (Pokémon-Bericht/Herkunftsort). Teams, K.-o.-Status, manuelle Markierungen und Save-Dateien bleiben unverändert. Nicht mehr vorhandene Pokémon lassen sich nur zuordnen, wenn sie noch in einem aufbewahrten Cloud-Spielstand enthalten sind.
+
 ## [0.11.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.11.0)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
