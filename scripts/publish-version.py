@@ -67,7 +67,14 @@ with tempfile.TemporaryDirectory(prefix='soullink-release-') as temp:
             assert archive.testzip() is None, 'Broken archive'
             assert any(n.endswith('SPIELSTART.md') for n in archive.namelist())
         ready.append((name,path,digest))
-    release = existing or api('releases', {'tag_name':f'v{version}','target_commitish':sha,
+    # Tag a code-identical release commit with skip-ci: the legacy tag workflow
+    # must not rebuild and rewrite this already verified numbered release.
+    source_commit = api('git/commits/'+sha)
+    release_sha = existing['target_commitish'] if existing else api('git/commits', {
+        'message':f'Release {version} from verified build {run_id} [skip ci]',
+        'tree':source_commit['tree']['sha'],'parents':[sha]})['sha']
+    notes += f'\n\nGeprüfter Build: [{run_id}](https://github.com/{repo}/actions/runs/{run_id}). Quellstand: `{sha}`. Release-Tag mit identischem Quellbaum.\n'
+    release = existing or api('releases', {'tag_name':f'v{version}','target_commitish':release_sha,
         'name':notes.splitlines()[0].lstrip('# ').strip(),
         'body':notes,'draft':True,'prerelease':False})
     upload = release['upload_url'].split('{')[0]
