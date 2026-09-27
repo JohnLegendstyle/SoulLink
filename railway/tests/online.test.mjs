@@ -6,7 +6,7 @@ import {mkdtempSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 
-test('private login, shared room, pairing, scopes, preview expiry and persistence',async()=>{
+test('private login, pairing, retired video endpoints, teams and persistence',async()=>{
   const directory=mkdtempSync(path.join(tmpdir(),'soullink-online-test-'));
   const password='test-only-focus',salt='test-salt';
   const env={...process.env,DATA_DIR:directory,PUBLIC_DIR:path.resolve('railway-dist/public'),PORT:'0',SOULLINK_LOCAL_TEST:'1',SOULLINK_PASSWORD_HASH:salt+':'+scryptSync(password,salt,32).toString('hex')};
@@ -41,16 +41,12 @@ test('private login, shared room, pairing, scopes, preview expiry and persistenc
     const approval=await request('/api/pair/approve',{method:'POST',cookie:john,token:room.John,data:{deviceId:grant.id,roomId:room.id,readToken:room.readToken}});assert.equal(approval.status,200);
     const paired=await (await request('/api/pair?id='+grant.id,{token:grant.secret})).json();assert.equal(paired.access.token,room.John);assert.equal(paired.status,'approved');
     assert.equal((await request('/api/pair/approve',{method:'POST',cookie:john,token:room.John,data:{deviceId:grant.id,roomId:room.id,readToken:room.readToken}})).status,409);
-    const frame='/api/frame?id='+room.id;
-    const jpeg=Buffer.from([255,216,255,217]);
-    assert.equal((await request(frame+'&player=John')).status,401);
-    assert.equal((await request(frame,{method:'PUT',token:room.readToken,type:'image/jpeg',data:jpeg})).status,403);
-    assert.equal((await request(frame,{method:'PUT',token:room.John,type:'image/jpeg',data:Buffer.from('not jpeg')})).status,400);
-    assert.equal((await request(frame,{method:'PUT',token:room.John,type:'image/jpeg',data:jpeg})).status,200);
-    const view=await request(frame+'&player=John',{token:room.readToken});assert.equal(view.status,200);assert.equal(view.headers.get('cache-control'),'no-store');assert.deepEqual(Buffer.from(await view.arrayBuffer()),jpeg);
-    assert.equal((await request(frame+'&player=Eddie',{token:room.readToken})).status,204);
-    await request(frame,{method:'DELETE',token:bee.Eddie});assert.equal((await request(frame+'&player=John',{token:room.readToken})).status,200);
-    await new Promise(r=>setTimeout(r,6200));assert.equal((await request(frame+'&player=John',{token:room.readToken})).status,204);
+    for(const endpoint of ['/api/frame','/api/live','/api/live/batch']){
+      for(const method of ['GET','PUT','POST']){
+        const reply=await request(endpoint+'?id='+room.id,{method,token:room.John});
+        assert.equal(reply.status,410);assert.equal((await reply.json()).videoDisabled,true);
+      }
+    }
     assert.equal((await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,heartbeat:true}})).status,200);
     const pokemon=uid=>({uid,species:25,nickname:'Test',level:5,hp:20,maxHp:20});
     for(const [role,token,uid] of [['John',room.John,'test-optimus'],['Eddie',bee.Eddie,'test-bee']]){

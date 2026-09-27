@@ -1,5 +1,9 @@
 # Soul Link · Anakin und Obi-Wan
 
+## Update 0.13: Discord statt Bildübertragung
+
+Die eingebaute Bildübertragung wurde entfernt. In älteren noch laufenden Apps bitte **Übertragung stoppen** drücken, anschließend in einer Spielpause auf 0.13.0 aktualisieren. Die Website lehnt alte Bild-Uploads ab. Teams, Fangkarte und Cloud-Spielstände bleiben aktiv. Rechts lässt sich ein Discord-Platzhalter einblenden (bei Eddie standardmäßig an); Discord als eigenes Fenster darüberlegen. „Breiter/Schmaler“ ändert die Breite, die untere rechte Ecke die Höhe. Kein eingebetteter Stream. Website neu laden. Die folgenden Hinweise zu älteren Bildübertragungs-Versionen sind historisch.
+
 ## Update 0.12.1: eigene Tasten behalten
 
 Tastatur, Controller und zusätzliche Hotkeys liegen jetzt versionsunabhängig im Benutzerprofil unter `SoulLink/Controls`, getrennt nach lokalem Spieler. Die neueste gültige Belegung aus alten Emulator-Profilen wird übernommen; alte Profilordner bitte bis zur Kontrolle behalten. Deaktivierte Tasten und Sondertasten bleiben erhalten. Bereits überschriebene Einstellungen können nur aus noch vorhandenen alten Profilen zurückgeholt werden. Keine neue Runde nötig. Direkt von 0.11 auf 0.12.1 aktualisieren; 0.12.0 ist kein notwendiger Zwischenschritt.

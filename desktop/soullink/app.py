@@ -83,7 +83,7 @@ class SoulLinkApp(tk.Tk):
             "scale": 4, "fps": 60, "volume": 80, "fullscreen": True, "player": "Optimus",
             "keys": dict(DEFAULT_KEYS), "connection": "", "save": "",
             "adventure": True, "pixel_filter": False, "integer_scaling": False, "screen_layout": "focus",
-            "mirror": True,
+            "mirror": False,
         }
         try:
             loaded = json.loads(self.state_file.read_text(encoding="utf-8"))
@@ -91,6 +91,7 @@ class SoulLinkApp(tk.Tk):
         except (OSError, ValueError):
             pass
         from .melonds import preferred_emulator
+        defaults['mirror']=False # Video retired; ignore older saved opt-ins.
         bundled = install_root() / 'Emulator' / ('melonDS.app' if platform.system() == 'Darwin' else 'melonDS.exe')
         defaults['emulator']=preferred_emulator(str(defaults['emulator']),bundled)
         from .controls import load_profile,key_label
@@ -339,8 +340,8 @@ class SoulLinkApp(tk.Tk):
         ttk.Button(tab, text="Tracker & Bildvorschau stoppen", command=self.stop_sync).grid(row=4, column=0, columnspan=3, sticky="ew")
         ttk.Label(tab, textvariable=self.sync_status, style="Panel.TLabel", foreground=COLORS["green"], wraplength=760).grid(row=5, column=0, columnspan=3, sticky="w", pady=15)
         self.mirror_var=tk.BooleanVar(value=bool(self.settings['mirror']))
-        ttk.Checkbutton(tab,text='DS-Spielbild privat übertragen · FPS wie App · ohne Ton',variable=self.mirror_var,command=self.save_mirror_preference).grid(row=6,column=0,columnspan=3,sticky='w',pady=12)
-        self.mirror_status=tk.StringVar(value='Nur das Spielbild wird übertragen, niemals der Desktop.')
+        ttk.Label(tab,text='Bildübertragung entfernt · Bild und Ton bei Bedarf über Discord teilen.',style='Panel.TLabel').grid(row=6,column=0,columnspan=3,sticky='w',pady=12)
+        self.mirror_status=tk.StringVar(value='Nur Teams, Fangdaten und gespeicherte Spielstände werden synchronisiert.')
         ttk.Label(tab,textvariable=self.mirror_status,style='Panel.TLabel',wraplength=750).grid(row=7,column=0,columnspan=3,sticky='w')
         ttk.Label(tab,text='Nach der Bestätigung verbindet sich die App automatisch. Teamdaten folgen nach\ndem Speichern im Spiel; K. o. nur bei gespeichertem Stand mit 0 KP.\nFür eine neue gemeinsame Spielrunde bitte auch eine neue Website-Runde verbinden.',style='Panel.TLabel',foreground=COLORS['muted']).grid(row=8,column=0,columnspan=3,sticky='w',pady=16)
         ttk.Button(tab,text='Gemeinsamen Tracker öffnen',command=self.open_website).grid(row=9,column=0,columnspan=3,sticky='ew')
@@ -548,12 +549,11 @@ class SoulLinkApp(tk.Tk):
                          keys={name: value.get() for name, value in self.key_vars.items()},
                          save_directory=pack.rom.parent,pixel_filter=self.filter_var.get()=='Weich',
                          integer_scaling=bool(self.integer_var.get()),screen_layout=str(self.settings['screen_layout']),
-                         pause_lost_focus=not bool(access and self.mirror_var.get()),input_profile=input_profile)
+                         pause_lost_focus=False,input_profile=input_profile)
             request=config_root()/'requests'/(uuid.uuid4().hex+'.json')
             request.parent.mkdir(parents=True,exist_ok=True)
             self.stop_sync()
-            mirror=request.with_suffix('.jpg') if access else None
-            if mirror and self.mirror_var.get(): mirror.with_name(mirror.name+'.enabled').touch()
+            mirror=None
             self.processes[player] = launch(executable, pack.rom, fullscreen=bool(self.fullscreen_var.get()),player=player,request=request,
                                            mirror=mirror,website=browser_url(access) if access else '')
             self.runtime[player]=(executable,request)
@@ -562,8 +562,6 @@ class SoulLinkApp(tk.Tk):
             if access:
                 self.cloud_session.start()
                 self.start_sync()
-                self.mirror_worker=MirrorWorker(access,mirror,lambda text:self.events.put(('mirror',text)))
-                self.mirror_worker.start()
             else: self.sync_status.set('Für diesen Spieler bitte einmal Website verbinden.')
             self.withdraw()
         except Exception as error:

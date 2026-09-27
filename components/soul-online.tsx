@@ -1,7 +1,6 @@
 'use client';
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useState,type ReactNode} from 'react';
 import {LiveParty,type LiveMember} from './live-party';
-import {FramePlayout} from '../lib/frame-playout.mjs';
 export type SoulAccess={id:string,readToken:string,John?:string,Eddie?:string};
 const token=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 function valid(a:any):a is SoulAccess{return !!a&&/^[a-f0-9-]{36}$/.test(a.id)&&token(a.readToken)&&(!a.John||token(a.John))&&(!a.Eddie||token(a.Eddie));}
@@ -27,97 +26,10 @@ export function useSavedAccess(access:SoulAccess|null,setAccess:(a:SoulAccess)=>
   useEffect(()=>{if(access)try{localStorage.setItem('soullink-access',JSON.stringify(access));}catch{}},[access]);
 }
 
-function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
-  const canvas=useRef<HTMLCanvasElement>(null);
-  const [retry,setRetry]=useState(0),[connection,setConnection]=useState('Verbinde …');
-  const [live,setLive]=useState(false),[fps,setFPS]=useState({target:0,received:0,shown:0});
-  useEffect(()=>{
-    let active=true,controller:AbortController|null=null,animation=0;
-    const encoded:{bytes:Uint8Array<ArrayBuffer>,due:number}[]=[],decoded:{image:ImageBitmap,due:number}[]=[];
-    const playout=new FramePlayout();
-    let decoding=false,visible=false,generation=0;
-    let target=0,received=0,shown=0,lastFrame=0,lastStats=performance.now(),lastPacket=performance.now(),measuredRate=120;
-    function offline(){generation++;encoded.length=0;for(const f of decoded)f.image.close();decoded.length=0;playout.reset();if(visible){visible=false;setLive(false);}}
-    async function decode(){
-      if(decoding)return;decoding=true;
-      try{while(active&&encoded.length){
-        const frame=encoded.shift()!;const epoch=generation;
-        const next=await createImageBitmap(new Blob([frame.bytes],{type:'image/jpeg'}));
-        if(!active||epoch!==generation){next.close();continue;}
-        decoded.push({image:next,due:frame.due});if(decoded.length>64)decoded.shift()!.image.close();
-      }}catch{}finally{decoding=false;}
-    }
-    function draw(){
-      if(!active)return;
-      let next:ImageBitmap|null=null;
-      const now=performance.now();
-      while(decoded.length&&now-decoded[0].due>750)decoded.shift()!.image.close();
-      const count=playout.take(now,decoded.length);
-      for(let i=0;i<count;i++){next?.close();next=decoded.shift()!.image;}
-      if(next&&canvas.current&&!document.hidden){
-        const surface=canvas.current;
-        if(surface.width!==next.width||surface.height!==next.height){surface.width=next.width;surface.height=next.height;}
-        surface.getContext('2d',{alpha:false})?.drawImage(next,0,0);next.close();shown++;
-        if(!visible){visible=true;setLive(true);}
-      }else next?.close();
-      animation=requestAnimationFrame(draw);
-    }
-    async function connect(){
-      while(active){
-        if(document.hidden){await new Promise(r=>setTimeout(r,250));continue;}
-        controller=new AbortController();
-        lastPacket=performance.now();
-        try{
-          const result=await fetch('/api/live?'+new URLSearchParams({id:access.id,player}),{headers:{Authorization:'Bearer '+access.readToken},cache:'no-store',signal:controller.signal});
-          if(!result.ok||!result.body){setConnection(result.status===401?'Zugang abgelaufen – Website neu anmelden':'Verbindung wird wiederhergestellt …');throw Error('Stream unavailable');}
-          const reader=result.body.getReader();let pending:Uint8Array<ArrayBufferLike>=new Uint8Array(0);
-          try{while(active){
-            const {value,done}=await reader.read();if(done)break;
-            lastPacket=performance.now();
-            if(pending.length+value.length>4000000)throw Error('Frame buffer limit');
-            const buffer=new Uint8Array(pending.length+value.length);buffer.set(pending);buffer.set(value,pending.length);pending=buffer;
-            while(pending.length>=8){
-              const header=new DataView(pending.buffer,pending.byteOffset,8),size=header.getUint32(0),configured=header.getUint16(4),kind=header.getUint16(6);
-              if(size>300000||configured>1000||kind>2)throw Error('Invalid frame');
-              if(pending.length<size+8)break;
-              if(kind===1&&size){
-                const now=performance.now();if(target!==configured)playout.reset();
-                target=configured;received++;lastFrame=now;
-                setConnection('Verbunden');
-                // A short bounded playout buffer smooths TCP packet bursts; it
-                // never fabricates frames or grows into a delayed recording.
-                playout.receive(now,configured);
-                encoded.push({bytes:pending.slice(8,size+8) as Uint8Array<ArrayBuffer>,due:now});
-                // Keep enough frames for acknowledged network batches at 120 FPS.
-                // A shorter queue discards frames before they become due.
-                if(encoded.length>64)encoded.shift();
-              }
-              else if(kind===0&&performance.now()-lastFrame>8000){offline();setConnection('Warte auf Spielbild aus der App');}
-              pending=pending.subarray(size+8);
-            }
-            void decode();
-          }}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
-        }catch{}finally{controller?.abort();controller=null;}
-        if(active)await new Promise(r=>setTimeout(r,250));
-      }
-    }
-    const visibility=()=>{if(document.hidden)controller?.abort();};
-    document.addEventListener('visibilitychange',visibility);
-    const stats=setInterval(()=>{
-      const now=performance.now(),seconds=(now-lastStats)/1000;
-      if(received)measuredRate=Math.max(1,received/seconds);
-      setFPS({target,received:Math.round(received/seconds),shown:Math.round(shown/seconds)});received=shown=0;lastStats=now;
-      if(lastFrame&&now-lastFrame>3000)setConnection('Verbindung wird wiederhergestellt …');
-      if(now-lastFrame>8000)offline();
-      if(controller&&now-lastPacket>8000)controller.abort();
-    },1000);
-    draw();void connect();
-    return()=>{active=false;controller?.abort();cancelAnimationFrame(animation);clearInterval(stats);document.removeEventListener('visibilitychange',visibility);for(const f of decoded)f.image.close();decoded.length=0;encoded.length=0;};
-  },[access.id,access.readToken,player,retry]);
-  return <article className="game-preview"><div className="preview-title"><strong>{player==='John'?'Anakin':'Obi-Wan'}</strong><span className={live&&connection==='Verbunden'?'is-live':''}>{live&&connection==='Verbunden'?'● Live · App: '+(fps.target?fps.target+' FPS':'unbegrenzt'):connection}</span></div><div className="preview-screen"><canvas ref={canvas} style={{display:live?'block':'none',maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} aria-label={`DS-Bildschirme von ${player==='John'?'Anakin':'Obi-Wan'}`}/>{!live&&<p>In der App „Übertragung starten“ einschalten.<br/>Spielfenster nicht minimieren. Kein Speichern nötig.<br/>Privat und ohne Ton.</p>}</div><p style={{padding:'8px 16px',fontSize:12,color:'#a4adbd',margin:0}}>Empfangen: {live?fps.received:0} FPS · Angezeigt: {live?fps.shown:0} FPS<br/>Anzeige abhängig von Bildschirm, Browser und Verbindung.</p><button onClick={()=>{setConnection('Verbinde …');setRetry(x=>x+1);}}>Bild neu verbinden</button></article>;
-}
-
-export function SoulOnline({access,onNew,members,now,blocked}:{access:SoulAccess|null,onNew:()=>void,members:Record<'John'|'Eddie',LiveMember>,now:number,blocked:Record<'John'|'Eddie',string[]>}){
+export function SoulOnline({access,onNew,members,now,blocked,children}:{access:SoulAccess|null,onNew:()=>void,members:Record<'John'|'Eddie',LiveMember>,now:number,blocked:Record<'John'|'Eddie',string[]>,children?:ReactNode}){
+  const [discord,setDiscord]=useState(false),[wide,setWide]=useState(false);
+  useEffect(()=>{try{const v=localStorage.getItem('soullink-discord-slot');setDiscord(v===null?!!access?.Eddie&&!access?.John:v==='true');setWide(localStorage.getItem('soullink-discord-wide')==='true');}catch{setDiscord(!!access?.Eddie&&!access?.John);}},[access?.id,access?.Eddie,access?.John]);
+  function toggleDiscord(){setDiscord(!discord);try{localStorage.setItem('soullink-discord-slot',String(!discord));}catch{}}
   const [pair,setPair]=useState(''),[message,setMessage]=useState(''),[busy,setBusy]=useState(false);
   useEffect(()=>{const read=()=>{const p=new URLSearchParams(location.hash.slice(1)).get('pair');if(p&&/^[a-f0-9-]{36}$/.test(p))setPair(p);};read();window.addEventListener('hashchange',read);return()=>window.removeEventListener('hashchange',read);},[]);
   async function approve(player:'John'|'Eddie'){
@@ -134,6 +46,11 @@ export function SoulOnline({access,onNew,members,now,blocked}:{access:SoulAccess
   return <>
     {pair&&<section className="online-connect"><div><h2>Deine App verbinden</h2><p>Bestätige nur, wenn du gerade in deiner eigenen App „Website verbinden“ gedrückt hast. Danach verbindet sie sich automatisch. John spielt Anakin, Eddie spielt Obi-Wan.</p></div>{!access?<p>Erstellt zuerst eine gemeinsame Runde. Nach dem Anmelden finden John und Eddie automatisch dieselbe Runde.</p>:<div className="online-actions">{access.John&&<button disabled={busy} onClick={()=>approve('John')}>Diese App ist Anakin</button>}{access.Eddie&&<button disabled={busy} onClick={()=>approve('Eddie')}>Diese App ist Obi-Wan</button>}{!access.John&&!access.Eddie&&<button onClick={()=>{location.hash='';location.reload();}}>Eigenen Spielerzugang laden</button>}</div>}</section>}
     {message&&<p className="online-message" role="status">{message}</p>}
-    {access&&<><section className="online-controls"><div><h2>Eure Bildschirme & Teams</h2><p>Aktuelles Team direkt neben dem Spielbild · Aktualisierung etwa alle 25 Sekunden. Bild ohne Ton; FPS folgen der App-Einstellung. Empfang und Anzeige können je nach Verbindung abweichen.</p></div><div className="online-actions"><button onClick={()=>{if(confirm('Eine neue gemeinsame Website-Runde erstellen? Die bisherige Runde bleibt erhalten.'))onNew();}}>Neue Website-Runde</button><button onClick={async()=>{await fetch('/api/logout',{method:'POST'});localStorage.removeItem('soullink-access');location.href='/';}}>Abmelden</button></div></section><section className="game-previews">{(['John','Eddie'] as const).map(player=>{const party=<LiveParty member={members[player]} player={player==='John'?'Anakin':'Obi-Wan'} now={now} blocked={blocked[player]}/>;return <div key={player} className={`player-stream player-stream-${player.toLowerCase()}`}>{player==='John'&&party}<GamePreview access={access} player={player}/>{player==='Eddie'&&party}</div>;})}</section></>}
+    {access&&<><section className="online-controls"><div><h2>Eure Spielübersicht</h2><p>Teams etwa alle 25 Sekunden · Fangkarte und Paare · Keine Bildübertragung über diese Website.</p></div><div className="online-actions"><button aria-pressed={discord} onClick={toggleDiscord}>{discord?'Discord-Platz ausblenden':'Discord-Platz einblenden'}</button><button onClick={()=>{if(confirm('Eine neue gemeinsame Website-Runde erstellen? Die bisherige Runde bleibt erhalten.'))onNew();}}>Neue Website-Runde</button><button onClick={async()=>{await fetch('/api/logout',{method:'POST'});localStorage.removeItem('soullink-access');location.href='/';}}>Abmelden</button></div></section>
+    <div className={'session-workspace'+(discord?' with-discord':'')+(wide?' discord-wide':'')}>
+      <div className="session-content"><section className="team-overview" aria-label="Eure aktuellen Teams">{(['John','Eddie'] as const).map(player=><article className={'team-card team-'+player.toLowerCase()} key={player}><h3>{player==='John'?'Anakin':'Obi-Wan'} <span>{player}</span></h3><LiveParty member={members[player]} player={player==='John'?'Anakin':'Obi-Wan'} now={now} blocked={blocked[player]}/></article>)}</section>{children}</div>
+      {discord&&<aside className="discord-dock" aria-label="Platzhalter für Discord"><div className="discord-dock-title"><strong>Platz für Discord</strong><button aria-pressed={wide} onClick={()=>{setWide(!wide);try{localStorage.setItem('soullink-discord-wide',String(!wide));}catch{}}}>{wide?'Schmaler':'Breiter'}</button></div><div className="discord-surface"><span>DISCORD</span><h3>Das Fenster gehört euch.</h3><p>Discord-Übertragung als eigenes Fenster öffnen und hier darüberlegen.</p><small>Nur reservierter Platz · kein Stream, kein Upload</small></div><p className="discord-hint">Höhe an der unteren rechten Ecke anpassen. Discord bleibt ein separates Fenster; diese Seite bettet es nicht ein.</p></aside>}
+    </div></>}
+
   </>;
 }

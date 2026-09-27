@@ -190,10 +190,11 @@ def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str 
         command.append("--fullscreen")
     command.append(str(rom))
     env=os.environ.copy()
+    env.pop('SOULLINK_MIRROR',None)
     env['SOULLINK_PLAYER']=player
     if request is not None: env['SOULLINK_REQUEST']=str(request)
     if request is not None: env['SOULLINK_TEAM']=str(request.with_suffix('.team'))
-    if mirror is not None: env['SOULLINK_MIRROR']=str(mirror)
+    # Video is retired, including inherited or legacy caller configuration.
     if website: env['SOULLINK_WEBSITE']=website
     return subprocess.Popen(command, cwd=str(executable.parent),env=env)
 

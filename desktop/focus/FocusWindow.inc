@@ -147,6 +147,8 @@ void MainWindow::initFocus()
         connect(retry,&QPushButton::clicked,this,[stem]{QSaveFile file(stem+".reconnect");if(file.open(QIODevice::WriteOnly)){file.write("retry");file.commit();}});
         auto* connectionTimer=new QTimer(this);
         connect(connectionTimer,&QTimer::timeout,this,refresh);connectionTimer->start(1000);
+    } else if(!website.isEmpty()) {
+        streamBar->addWidget(new QLabel("Teams & Fangkarte verbunden · Bildübertragung entfernt",streamBar));
     } else {
         streamBar->addWidget(new QLabel("Website nicht verbunden",streamBar));
         auto* connectWebsite=button("Website verbinden",streamBar);streamBar->addWidget(connectWebsite);

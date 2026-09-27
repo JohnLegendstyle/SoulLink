@@ -5,6 +5,18 @@ from soullink.melonds import DEFAULT_KEYS, write_config, read_runtime_settings, 
 
 
 class FocusTests(unittest.TestCase):
+    def test_launch_never_enables_retired_video_but_keeps_team_feed(self):
+        import os
+        from unittest.mock import patch
+        from soullink.melonds import launch
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);rom=root/'game.nds';rom.touch();request=root/'request.json'
+            with patch.dict(os.environ,{'SOULLINK_MIRROR':'old-enabled.jpg'}),patch('soullink.melonds.subprocess.Popen') as start:
+                launch(root/'melonDS.exe',rom,request=request,mirror=root/'legacy.jpg')
+            environment=start.call_args.kwargs['env']
+            self.assertNotIn('SOULLINK_MIRROR',environment)
+            self.assertEqual(environment['SOULLINK_TEAM'],str(request.with_suffix('.team')))
+
     def test_portable_update_uses_new_bundled_emulator(self):
         from soullink.melonds import preferred_emulator
         with tempfile.TemporaryDirectory() as temp:
