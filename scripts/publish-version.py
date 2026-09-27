@@ -92,9 +92,10 @@ with tempfile.TemporaryDirectory(prefix='soullink-release-') as temp:
 # Historical packages remain byte-for-byte untouched; label the archive clearly.
 for old in api('releases?per_page=100'):
     tag = old['tag_name']
-    if tag in ('v0.2.0','v0.3.0','v0.4.0'):
+    if tag in ('v0.2.0','v0.3.0','v0.4.0','v0.10.0') and tag != f'v{version}':
         intro = f'Archivierte Version {tag[1:]}. Für den aktuellen Spielbetrieb bitte [die stabile Version](https://github.com/{repo}/releases/latest) verwenden. Diese alten Pakete werden unverändert aufbewahrt.\n\n'
-        body = old['body'] or ''
+        old_notes = root / 'releases' / f'{tag}.md'
+        body = old_notes.read_text() if old_notes.is_file() else (old['body'] or '')
         if not body.startswith(intro): body = intro + body
         api(f"releases/{old['id']}",{'name':f'Soul Link {tag[1:]} – Archiv','body':body,'make_latest':'false'},method='PATCH')
     elif tag == 'spielabend':

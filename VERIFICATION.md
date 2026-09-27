@@ -1,4 +1,19 @@
-# Prüfung vor dem Spielabend · 26. September 2026
+# Prüfprotokoll
+
+## Updater 0.11 · 27. September 2026
+
+- [Build 36285288308](https://github.com/JohnLegendstyle/SoulLink/actions/runs/36285288308): Windows x64, macOS Apple Silicon und Release-Job erfolgreich; Quellstand `bbb32656ed9174c383ae745ccccb5d1a99a37a94`. Beide Paket-Selbsttests bestanden. Release-Tag verwendet denselben Quellbaum, ohne einen weiteren Überschreibungs-Build auszulösen.
+
+- 56 lokale Python-Tests bestanden, einschließlich Versionsvergleich, Plattformauswahl, Herkunft/Prüfsumme, Archiv-Pfadgrenzen, Symlink-Ausbrüche, unveränderte fremde Dateien und fehlgeschlagene Downloads.
+- Versionswechsel bei laufendem Spiel, Cloud-Sitzung/-Abgleich, Rundenbearbeitung und Geräteverbindung gesperrt (gezielte Tests).
+- Echte veröffentlichte Windows-x64- und macOS-arm64-Pakete 0.10 über den neuen Updater heruntergeladen, GitHub-SHA256 geprüft und in isolierte temporäre Ordner entpackt. Mac-Symlinks und ausführbare Dateien erhalten. Anschließend Selbsttest der entpackten Mac-App erfolgreich ausgeführt; kein Spiel geöffnet und keine Runde verändert. Windows-EXE lokal nicht ausgeführt.
+- Erste Windows-CI-Prüfung scheiterte, weil der simulierte Download vor Installation der Paketabhängigkeiten Zertifikate laden wollte. Der Test isoliert nun den simulierten Transport; alle 56 Tests bestehen auch ohne Site-Packages (zwei vorhandene ndspy-Tests in diesem Modus erwartungsgemäß ausgelassen). Die echte App verwendet unverändert ihren gebündelten Zertifikatsspeicher.
+- Gebündelter Zertifikatsspeicher für HTTPS in den eingefrorenen Apps verwendet.
+- Nicht durch diese Prüfungen abgedeckt: vollständiger interaktiver Wechsel zwischen zwei gepackten App-Versionen auf den tatsächlichen Rechnern, automatische Wiederherstellung nach einem Absturz der neuen App. Rückfall ist manuelles Starten der alten App.
+
+## Historisch: Prüfung vor dem Spielabend · 26. September 2026
+
+Die folgenden Angaben beschreiben den damaligen Stand, nicht die aktuelle Figuren- oder Tracker-Version.
 
 - Sieben automatische Tests: Start-Saves/Prüfsummen, männliche Trainer Optimus und Bee ohne Pokémon, unveränderte übrige Save-Daten beim Umbenennen, defekte Saves, falsche ROM-Sprache, Pfadgrenzen, Tempo-/Ton-/Tastenprofile und Pokémon-Entschlüsselung.
 - Echter lokaler Spieltest: Optimus und Bee werden im WEITER-Menü korrekt angezeigt und starten im Labor. Die Starterauswahl öffnet sich mit drei Pokébällen. Die auszuliefernden Saves enthalten weiterhin keinen Starter.

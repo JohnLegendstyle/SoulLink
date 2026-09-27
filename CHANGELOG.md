@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.10.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.10.0)
+## [0.11.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.11.0)
+
+27.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Eingebauter Updater: automatische Versionsprüfung, Änderungsübersicht, bestätigter Download mit SHA256-Prüfung und separate Installation. Wechsel ist bei laufendem Spiel oder Cloud-Abgleich gesperrt. Alte App und Spielstände bleiben erhalten. [Update-Schritte und Grenzen](releases/v0.11.0.md). 0.11 muss einmalig manuell heruntergeladen werden.
+
+## [0.10.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.10.0)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 
