@@ -2,11 +2,15 @@
 
 Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, überprüfbaren Start-Spielständen und gemeinsamem Railway-Tracker.
 
-- [Downloads](https://github.com/JohnLegendstyle/SoulLink/releases)
+- **[Aktuelle stabile Version: 0.10.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.10.0)**
+- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.10.0/SoulLink-0.10.0-Windows-x64.zip)
+- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.10.0/SoulLink-0.10.0-macOS-arm64.zip)
+- [Versionsübersicht und Änderungsverlauf](CHANGELOG.md)
+- [Update 0.10.0: Spielstände behalten und neue Jedi-Grafiken aktivieren](releases/v0.10.0.md)
 - [Spielstart und Bedienung](SPIELSTART.md)
 - [Gemeinsamer Tracker](https://soullink-web-production.up.railway.app)
 
-Der Nutzer liefert seine eigene ROM. Dieses Repository und die Releases enthalten keine Nintendo-ROMs oder BIOS-Dumps.
+Der Nutzer liefert seine eigene ROM. Dieses Repository und die Releases enthalten keine Nintendo-ROMs oder BIOS-Dumps. **Beim Update die bestehende Runde öffnen; keine Startspielstände über euren Fortschritt kopieren.** Der Downloadkanal `spielabend` wird fortlaufend ersetzt; nummerierte Releases sind die verlässliche Versionsablage. macOS-Pakete sind für M1 oder neuer, nicht für Intel-Macs.
 
 ## Desktop
 
@@ -37,7 +41,7 @@ Version 0.5 adds password-protected website accounts (John/Eddie), one-time brow
 
 `railway/server.mjs`: Node 24 mit SQLite, Bearer-Rundenschlüsseln und persistentem Volume unter `/data`. Die statische React-Seite wird mit `node node_modules/vite/bin/vite.js build --config railway/vite.config.ts` gebaut. `DATA_DIR=/data`, `PUBLIC_DIR=/app/public` und `PORT` konfigurieren den Server. Bestehende interne Rollen John/Eddie und lokale Rundenkennungen Optimus/Bee bleiben aus Kompatibilitätsgründen erhalten; die sichtbaren Namen sind Anakin/Obi-Wan.
 
-Die Desktop-App liest gespeicherte `.sav`-Dateien, keinen laufenden Arbeitsspeicher. K. o.-Erkennung und Paarbildung sind dadurch auf gespeicherte Zustände beschränkt. Regeln und Grenzen stehen in SPIELSTART.md. Verbindungsdateien enthalten private Schlüssel und werden niemals in Releases veröffentlicht.
+Ab 0.9 liest die Desktop-App zusätzlich das aktuelle Team aus dem Emulator etwa alle 25 Sekunden. Boxen und vollständiger Spielstand werden weiterhin aus `.sav` gelesen; der Cloud-Spielstandabgleich benötigt Speichern im Spiel. Ab 0.10 werden außerdem Fangorte übertragen. Regeln und Grenzen stehen in SPIELSTART.md. Verbindungsdateien enthalten private Schlüssel und werden niemals in Releases veröffentlicht.
 
 ## Lizenz
 
