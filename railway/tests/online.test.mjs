@@ -66,14 +66,21 @@ test('private login, pairing, retired video endpoints, teams and persistence',as
     await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:2,party:[caught],owned:[caught],fainted:[]}});
     // Old apps omit metadata: do not erase the newly learned location.
     await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:3,party:[pokemon('test-optimus')],owned:[],fainted:[]}});
+    // A catch sent directly to a full PC party is paired with an explicit miss
+    // placeholder, so the next successful catches cannot shift out of line.
+    const boxed={...pokemon('john-boxed'),level:null,hp:null,maxHp:null,metLocation:179,originGame:8,isEgg:false,eggLocation:0};
+    await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:4,party:[caught],owned:[caught,boxed],fainted:[]}});
+    assert.equal((await request('/api/encounters',{method:'PATCH',cookie:eddie,token:bee.Eddie,data:{id:room.id,location:179,status:'missed'}})).status,200);
+    const failedHeartbeat=await (await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,heartbeat:true}})).json();
+    assert.ok(failedHeartbeat.blocked.includes('john-boxed'));
     const mark={method:'PATCH',cookie:john,token:room.John,data:{id:room.id,location:178,status:'missed'}};
     assert.equal((await request('/api/encounters',{...mark,token:room.readToken})).status,403);
     assert.equal((await request('/api/encounters',{...mark,cookie:eddie})).status,403);
     assert.equal((await request('/api/encounters',{...mark,data:{...mark.data,location:99999}})).status,400);
     assert.equal((await request('/api/encounters',mark)).status,200);
-    await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:4,party:[],owned:[],fainted:[]}});
+    await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:5,party:[],owned:[],fainted:[]}});
     const mapped=(await (await request('/api/room?id='+room.id,{cookie:john,token:room.readToken})).json()).state;
-    assert.equal(mapped.John.seen[0].metLocation,177);assert.equal(mapped.John.encounters[178].status,'missed');assert.equal(mapped.Eddie.encounters,undefined);
+    assert.equal(mapped.John.seen[0].metLocation,177);assert.equal(mapped.John.encounters[178].status,'missed');assert.equal(mapped.Eddie.encounters[179].status,'missed');assert.equal(mapped.Eddie.seen[1].missed,true);
     await stop();await start();john=await login('John');eddie=await login('Eddie');
     assert.equal((await (await request('/api/account',{cookie:eddie})).json()).access.id,room.id);
     assert.equal((await (await request('/api/account',{cookie:john})).json()).access.John,room.John);

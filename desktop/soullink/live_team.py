@@ -38,8 +38,31 @@ def parse_team(data:bytes, saved:SaveState):
             raise ValueError('Live-Pokémon noch nicht vollständig lesbar.')
         party.append(mon)
     if len({p.uid for p in party})!=len(party):raise ValueError('Doppeltes Live-Pokémon.')
+    boxes=[]
+    storage_offset,storage_size=entries[41]
+    # PCStorage contains 18 boxes of 0x1000 bytes. Reading this live copy is
+    # what makes a catch visible even when a full party sends it straight to
+    # the PC and the player has not saved yet.
+    if storage_size>=0x12000:
+        for box in range(18):
+            base=storage_offset+box*0x1000
+            for slot in range(30):
+                start=base+slot*136
+                raw=bytearray(region[start:start+136])
+                if len(raw)!=136:raise ValueError('Unvollständige Live-Boxdaten.')
+                if not any(raw) or raw==b'\xff'*136:continue
+                flags=struct.unpack_from('<H',raw,4)[0]
+                if flags&~3:raise ValueError('Box-Pokémon wird gerade verändert.')
+                if flags&2:_crypt(raw,8,136,struct.unpack_from('<H',raw,6)[0])
+                mon=_pokemon(bytes(raw),False)
+                if not mon:raise ValueError('Live-Boxdaten noch nicht vollständig lesbar.')
+                boxes.append(mon)
+    if len({p.uid for p in boxes})!=len(boxes):raise ValueError('Doppeltes Live-Box-Pokémon.')
     known={p.uid for p in party}
-    return SaveState(saved.trainer,saved.gender,party,party+[p for p in saved.owned if p.uid not in known])
+    owned=party+[p for p in boxes if p.uid not in known]
+    known.update(p.uid for p in owned)
+    owned.extend(p for p in saved.owned if p.uid not in known)
+    return SaveState(saved.trainer,saved.gender,party,owned)
 
 def read_team(path:Path,saved:SaveState):
     if not -2<=time.time()-path.stat().st_mtime<=60:raise ValueError('Live-Team ist veraltet.')

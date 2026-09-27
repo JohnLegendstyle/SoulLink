@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.14.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.0)
+## [0.14.1 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.1)
+
+27.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Live-Lesen aller Boxen ergänzt: Ein neuer Fang wird nun auch bei vollem Team ohne manuelles Speichern erkannt. Für besiegte oder geflüchtete Gegenfänge erscheint beim unvollständigen Paar die Aktion **Besiegt / Fang verpasst**; ein roter Platzhalter hält alle späteren Verbindungen in der richtigen Reihenfolge und sperrt den gefangenen Partner. [Update-Schritte](releases/v0.14.1.md).
+
+## [0.14.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.0)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 

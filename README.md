@@ -2,10 +2,11 @@
 
 Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, überprüfbaren Start-Spielständen und gemeinsamem Railway-Tracker.
 
-- **[Aktuelle stabile Version: 0.14.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.0)**
-- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.0/SoulLink-0.14.0-Windows-x64.zip)
-- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.0/SoulLink-0.14.0-macOS-arm64.zip)
+- **[Aktuelle stabile Version: 0.14.1](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.1)**
+- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.1/SoulLink-0.14.1-Windows-x64.zip)
+- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.1/SoulLink-0.14.1-macOS-arm64.zip)
 - [Versionsübersicht und Änderungsverlauf](CHANGELOG.md)
+- [Update 0.14.1: Live-Boxen und verpasste Fänge](releases/v0.14.1.md) – Box-Fänge ohne manuelles Speichern erkennen, fehlgeschlagene Gegenfänge sauber als Platzhalter führen.
 - [Update 0.14.0: Live-Karte und Typenhilfe](releases/v0.14.0.md) – Anakin/Obi-Wan live auf der Karte, Typen/Schwächen/Stärken am Team und drei lokale Website-Ansichten.
 - [Update 0.13.0: Discord statt Bildübertragung](releases/v0.13.0.md) – kein integrierter Bild-Upload mehr, kompakte Teams und optionaler Discord-Platzhalter.
 - [Update 0.12.1: eigene Tasten behalten](releases/v0.12.1.md) – vollständige Tastatur-/Controllerprofile, inklusive FPS-Fix aus 0.12.0. Direkt von 0.11 aktualisierbar.

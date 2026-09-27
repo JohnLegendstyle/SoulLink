@@ -1,4 +1,5 @@
 import {authorize,blocked,cleanMon,cleanOwned,cleanPosition,db,response} from '@/lib/soul';
+import {placeSeen} from '@/lib/encounters.mjs';
 
 export async function POST(req:Request){
   try{
@@ -20,8 +21,8 @@ export async function POST(req:Request){
         p.teamSource=b.teamSource==='live'?'live':'save';p.teamCapturedAt=Number.isSafeInteger(b.teamCapturedAt)&&b.teamCapturedAt>0?Math.min(b.teamCapturedAt,Date.now()):0;
         if(b.position!==undefined)p.position=cleanPosition(b.position);
         if(b.owned!==undefined&&(!Array.isArray(b.owned)||b.owned.length>546))return response({error:'Ungültige Boxdaten'},400);
-        for(const mon of [...(b.owned||[]).map(cleanOwned),...party]){const ix=p.seen.findIndex(item=>item.uid===mon.uid);if(ix<0){if(p.seen.length>=1000)return response({error:'Runde ist voll'},400);p.seen.push(mon);}else p.seen[ix]={...p.seen[ix],...mon};}
-        for(const uid of b.fainted)if(p.seen.some(mon=>mon.uid===uid)&&!p.dead.includes(uid))p.dead.push(uid);
+        for(const mon of [...(b.owned||[]).map(cleanOwned),...party]){if(!p.seen.some(item=>item?.uid===mon.uid)&&p.seen.length>=1000)return response({error:'Runde ist voll'},400);placeSeen(a.state,who,mon);}
+        for(const uid of b.fainted)if(p.seen.some(mon=>mon?.uid===uid)&&!p.dead.includes(uid))p.dead.push(uid);
       }
       const result=await db().prepare('UPDATE rooms SET state=?,revision=revision+1 WHERE id=? AND revision=?').bind(JSON.stringify(a.state),b.roomId,a.row.revision).run();
       if(result.meta.changes)return response({ok:true,blocked:blocked(a.state,who),partnerOnline:Date.now()-a.state[other].lastSeen<10000});

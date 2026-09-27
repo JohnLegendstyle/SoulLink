@@ -6,7 +6,7 @@ import path from 'node:path';
 import {onlineRoutes} from './online.mjs';
 import {siteAuth} from './auth.mjs';
 import {cloudRoutes} from './cloud.mjs';
-import {encounterFields} from '../lib/encounters.mjs';
+import {encounterFields,placeSeen} from '../lib/encounters.mjs';
 import {encounterRoutes} from './encounters.mjs';
 import {backfillEncounters} from './save-encounters.mjs';
 const dir=process.env.DATA_DIR||'./data';mkdirSync(dir,{recursive:true});
@@ -15,7 +15,7 @@ const hash=s=>createHash('sha256').update(s).digest('hex'),key=()=>randomBytes(3
 const player=()=>({party:[],seen:[],dead:[],lastSeen:0,sessionId:'',sequence:-1,position:null});
 const initial=()=>({John:player(),Eddie:player(),names:{}});
 function authorize(req,id){if(typeof id!=='string'||!/^[a-f0-9-]{36}$/.test(id))return null;const token=req.headers.authorization?.replace(/^Bearer /,'');if(!token||!/^[a-f0-9]{64}$/.test(token))return null;const row=db.prepare('SELECT * FROM rooms WHERE id=?').get(id);if(!row)return null;const h=hash(token);const role=h===row.john_hash?'John':h===row.eddie_hash?'Eddie':h===row.read_hash?'read':null;return role?{row,role,state:JSON.parse(row.state)}:null;}
-function blocked(s,p){const o=p==='John'?'Eddie':'John';return s[p].seen.filter((m,i)=>s[p].dead.includes(m.uid)||(s[o].seen[i]&&s[o].dead.includes(s[o].seen[i].uid))).map(m=>m.uid);}
+function blocked(s,p){const o=p==='John'?'Eddie':'John';return s[p].seen.filter((m,i)=>m&&!m.missed&&(s[p].dead.includes(m.uid)||s[o].seen[i]?.missed||s[o].seen[i]&&s[o].dead.includes(s[o].seen[i].uid)||m.metLocation&&s[o].encounters?.[m.metLocation]?.status==='missed')).map(m=>m.uid);}
 function clean(v,box=false){if(!v||typeof v.uid!=='string'||!v.uid.length||v.uid.length>100||!Number.isInteger(v.species)||v.species<1||v.species>493)throw Error('Ungültige Pokémon-Daten');const origin=encounterFields(v);if(box&&v.level==null)return {uid:v.uid,species:v.species,nickname:String(v.nickname||'').slice(0,30),level:null,hp:null,maxHp:null,...origin};if(!Number.isInteger(v.level)||v.level<1||v.level>100||!Number.isInteger(v.hp)||!Number.isInteger(v.maxHp)||v.maxHp<1||v.maxHp>999||v.hp<0||v.hp>v.maxHp)throw Error('Ungültige KP/Level');return{uid:v.uid,species:v.species,nickname:String(v.nickname||'').slice(0,30),level:v.level,hp:v.hp,maxHp:v.maxHp,...origin};}
 function cleanPosition(v){if(!v||!Number.isInteger(v.mapId)||v.mapId<0||v.mapId>1000||!Number.isInteger(v.x)||v.x<0||v.x>100000||!Number.isInteger(v.y)||v.y<0||v.y>100000||!Number.isInteger(v.direction)||v.direction<0||v.direction>3||!Number.isSafeInteger(v.capturedAt)||v.capturedAt<1)throw Error('Ungültige Position');return{mapId:v.mapId,x:v.x,y:v.y,direction:v.direction,capturedAt:Math.min(v.capturedAt,Date.now()),receivedAt:Date.now()};}
 const headers={'Content-Type':'application/json','Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'};
@@ -44,8 +44,8 @@ if(url.pathname==='/api/room'&&req.method==='PATCH'){const b=await body(req);con
 if(url.pathname==='/api/sync'&&req.method==='POST'){const b=await body(req);const a=authorize(req,b.roomId);if(!a||a.role==='read')return send(res,401,{error:'Ungültiger Spielerzugang'});if(b.heartbeat===true){const who=a.role,other=who==='John'?'Eddie':'John';a.state[who].lastSeen=Date.now();if(b.position!==undefined)a.state[who].position=cleanPosition(b.position);db.prepare('UPDATE rooms SET state=?,revision=revision+1 WHERE id=?').run(JSON.stringify(a.state),b.roomId);return send(res,200,{ok:true,blocked:blocked(a.state,who),partnerOnline:Date.now()-a.state[other].lastSeen<10000});}if(typeof b.sessionId!=='string'||b.sessionId.length>100||!Number.isSafeInteger(b.sequence)||b.sequence<0||!Array.isArray(b.party)||b.party.length>6||!Array.isArray(b.fainted)||b.fainted.length>1000||b.fainted.some(v=>typeof v!=='string'||v.length>100)||b.owned!==undefined&&(!Array.isArray(b.owned)||b.owned.length>546))return send(res,400,{error:'Ungültige Synchronisierung'});const party=b.party.map(m=>clean(m));if(new Set(party.map(m=>m.uid)).size!==party.length)return send(res,400,{error:'Doppelte Team-ID'});const who=a.role,other=who==='John'?'Eddie':'John',p=a.state[who];if(p.sessionId===b.sessionId&&p.sequence>=b.sequence)return send(res,200,{ok:true,blocked:blocked(a.state,who),partnerOnline:Date.now()-a.state[other].lastSeen<10000});p.party=party;p.lastSeen=Date.now();p.sessionId=b.sessionId;p.sequence=b.sequence;if(b.position!==undefined)p.position=cleanPosition(b.position);
 p.teamSource=b.teamSource==='live'?'live':'save';
 p.teamCapturedAt=Number.isSafeInteger(b.teamCapturedAt)&&b.teamCapturedAt>0?Math.min(b.teamCapturedAt,Date.now()):0;
-for(const m of [...(b.owned||[]).map(m=>clean(m,true)),...party]){const ix=p.seen.findIndex(x=>x.uid===m.uid);if(ix<0){if(p.seen.length>=1000)return send(res,400,{error:'Runde ist voll'});p.seen.push(m);}else p.seen[ix]={...p.seen[ix],...m};}
-for(const uid of b.fainted)if(p.seen.some(m=>m.uid===uid)&&!p.dead.includes(uid))p.dead.push(uid);
+for(const m of [...(b.owned||[]).map(m=>clean(m,true)),...party]){if(!p.seen.some(x=>x?.uid===m.uid)&&p.seen.length>=1000)return send(res,400,{error:'Runde ist voll'});placeSeen(a.state,who,m);}
+for(const uid of b.fainted)if(p.seen.some(m=>m?.uid===uid)&&!p.dead.includes(uid))p.dead.push(uid);
 db.prepare('UPDATE rooms SET state=?,revision=revision+1 WHERE id=?').run(JSON.stringify(a.state),b.roomId);return send(res,200,{ok:true,blocked:blocked(a.state,who),partnerOnline:Date.now()-a.state[other].lastSeen<10000});}
 if(url.pathname.startsWith('/api/'))return send(res,404,{error:'Nicht gefunden'});
 if(req.method!=='GET'&&req.method!=='HEAD')return send(res,405,{error:'Methode nicht erlaubt'});

@@ -1,4 +1,4 @@
-import {placeIds} from '../lib/encounters.mjs';
+import {placeIds,ensureMissedSlot} from '../lib/encounters.mjs';
 
 export function encounterRoutes({authorize,send,body,db}){
   return async(req,res,url)=>{
@@ -10,8 +10,10 @@ export function encounterRoutes({authorize,send,body,db}){
       send(res,400,{error:'Ungültiger Fangort oder Status.'});return true;
     }
     const member=a.state[a.role];member.encounters??={};
+    const updatedAt=Date.now();
     if(b.status==='auto')delete member.encounters[b.location];
-    else member.encounters[b.location]={status:b.status,updatedAt:Date.now()};
+    else member.encounters[b.location]={status:b.status,updatedAt};
+    if(b.status==='missed')ensureMissedSlot(a.state,a.role,b.location,updatedAt);
     db.prepare('UPDATE rooms SET state=?,revision=revision+1 WHERE id=?').run(JSON.stringify(a.state),b.id);
     send(res,200,{ok:true,player:a.role,encounters:member.encounters});return true;
   };
