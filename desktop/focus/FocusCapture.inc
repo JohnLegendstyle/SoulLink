@@ -1,6 +1,11 @@
 // Only the DS GL panel. One bounded encoder slot; no audio or desktop capture.
 #include <QBuffer>
 #include <QtEndian>
+#include <QTcpSocket>
+#include <QHostAddress>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <condition_variable>
 #include <mutex>
 #include <thread>
@@ -27,6 +32,8 @@ public:
     }
     void run(){
         const QString path=qEnvironmentVariable("SOULLINK_MIRROR");
+        const QString endpoint=QFileInfo(path).path()+"/"+QFileInfo(path).completeBaseName()+".receiver.json";
+        QTcpSocket pipe;
         for(;;){
             QImage pixels;int fps;
             {
@@ -40,6 +47,26 @@ public:
             if(!QFileInfo::exists(path+".enabled"))continue;
             char header[8];qToBigEndian<quint32>(jpeg.size(),header);
             qToBigEndian<quint16>(qBound(0,fps,1000),header+4);qToBigEndian<quint16>(1,header+6);
+            // Loopback pipe avoids replacing a file up to 120 times/second.
+            // It is private to this launcher; no desktop or audio is captured.
+            if(QFileInfo::exists(endpoint)){
+                if(pipe.state()!=QAbstractSocket::ConnectedState){
+                    pipe.abort();QFile settings(endpoint);
+                    if(!settings.open(QIODevice::ReadOnly))continue;
+                    const auto config=QJsonDocument::fromJson(settings.read(4096)).object();
+                    const int port=config.value("port").toInt();
+                    const QByteArray token=config.value("token").toString().toLatin1();
+                    if(port<1||port>65535||token.size()!=64)continue;
+                    pipe.connectToHost(QHostAddress::LocalHost,quint16(port));
+                    if(!pipe.waitForConnected(30))continue;
+                    pipe.setSocketOption(QAbstractSocket::LowDelayOption,1);
+                    pipe.write(token+"\n");
+                }
+                if(pipe.bytesToWrite()>2000000){pipe.abort();continue;}
+                pipe.write(header,8);pipe.write(jpeg);pipe.flush();
+                if(pipe.bytesToWrite())pipe.waitForBytesWritten(5);
+                continue;
+            }
             QSaveFile file(path);
             if(file.open(QIODevice::WriteOnly)){file.write(header,8);file.write(jpeg);file.commit();}
         }
@@ -54,7 +81,7 @@ static void focusCaptureGame(int width,int height,int fps)
 {
     static const QString path=qEnvironmentVariable("SOULLINK_MIRROR");
     if(path.isEmpty()||!QFileInfo::exists(path+".enabled")||width<1||height<1||width>8192||height>8192)return;
-    const QSize size=QSize(width,height).scaled(960,720,Qt::KeepAspectRatio);
+    const QSize size=QSize(width,height).scaled(720,540,Qt::KeepAspectRatio);
     QImage pixels(size,QImage::Format_RGBA8888);if(pixels.isNull())return;
     GLint readFbo,drawFbo,texture,pack,unpack,alignment,rowLength,skipRows,skipPixels;
     glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING,&readFbo);glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING,&drawFbo);

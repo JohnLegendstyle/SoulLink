@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {LiveParty,type LiveMember} from './live-party';
+import {FramePlayout} from '../lib/frame-playout.mjs';
 export type SoulAccess={id:string,readToken:string,John?:string,Eddie?:string};
 const token=(v:unknown):v is string=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 function valid(a:any):a is SoulAccess{return !!a&&/^[a-f0-9-]{36}$/.test(a.id)&&token(a.readToken)&&(!a.John||token(a.John))&&(!a.Eddie||token(a.Eddie));}
@@ -33,9 +34,10 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
   useEffect(()=>{
     let active=true,controller:AbortController|null=null,animation=0;
     const encoded:{bytes:Uint8Array<ArrayBuffer>,due:number}[]=[],decoded:{image:ImageBitmap,due:number}[]=[];
-    let decoding=false,visible=false,generation=0,lastDue=0;
+    const playout=new FramePlayout();
+    let decoding=false,visible=false,generation=0;
     let target=0,received=0,shown=0,lastFrame=0,lastStats=performance.now(),lastPacket=performance.now(),measuredRate=120;
-    function offline(){generation++;encoded.length=0;for(const f of decoded)f.image.close();decoded.length=0;lastDue=0;if(visible){visible=false;setLive(false);}}
+    function offline(){generation++;encoded.length=0;for(const f of decoded)f.image.close();decoded.length=0;playout.reset();if(visible){visible=false;setLive(false);}}
     async function decode(){
       if(decoding)return;decoding=true;
       try{while(active&&encoded.length){
@@ -48,7 +50,10 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
     function draw(){
       if(!active)return;
       let next:ImageBitmap|null=null;
-      while(decoded.length&&decoded[0].due<=performance.now()){next?.close();next=decoded.shift()!.image;}
+      const now=performance.now();
+      while(decoded.length&&now-decoded[0].due>750)decoded.shift()!.image.close();
+      const count=playout.take(now,decoded.length);
+      for(let i=0;i<count;i++){next?.close();next=decoded.shift()!.image;}
       if(next&&canvas.current&&!document.hidden){
         const surface=canvas.current;
         if(surface.width!==next.width||surface.height!==next.height){surface.width=next.width;surface.height=next.height;}
@@ -76,15 +81,13 @@ function GamePreview({access,player}:{access:SoulAccess,player:'John'|'Eddie'}){
               if(size>300000||configured>1000||kind>2)throw Error('Invalid frame');
               if(pending.length<size+8)break;
               if(kind===1&&size){
-                const now=performance.now();if(target!==configured)lastDue=0;
+                const now=performance.now();if(target!==configured)playout.reset();
                 target=configured;received++;lastFrame=now;
                 setConnection('Verbunden');
                 // A short bounded playout buffer smooths TCP packet bursts; it
                 // never fabricates frames or grows into a delayed recording.
-                const cadence=configured||measuredRate;
-                const delay=Math.min(400,48000/cadence);
-                lastDue=Math.min(now+delay,Math.max(now+Math.min(150,delay/2),lastDue+1000/cadence));
-                encoded.push({bytes:pending.slice(8,size+8) as Uint8Array<ArrayBuffer>,due:lastDue});
+                playout.receive(now,configured);
+                encoded.push({bytes:pending.slice(8,size+8) as Uint8Array<ArrayBuffer>,due:now});
                 // Keep enough frames for acknowledged network batches at 120 FPS.
                 // A shorter queue discards frames before they become due.
                 if(encoded.length>64)encoded.shift();

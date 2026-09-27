@@ -84,6 +84,16 @@ class MirrorWorker:
         reconnect=self.frame.with_suffix('.reconnect')
         flag=self.frame.with_name(self.frame.name+'.enabled')
         status='';captured=0;last_capture=0.;capture_error=False
+        def deliver(data):
+            nonlocal captured,last_capture,capture_error
+            packet,fps=self.packet(data);last_capture=time.monotonic();captured=fps;capture_error=False
+            with self.frames_lock:
+                self.frames.append((packet,last_capture))
+                while len(self.frames)>96 or sum(len(p[0]) for p in self.frames)>8000000:self.frames.popleft()
+        from .frame_receiver import FrameReceiver
+        try:receiver=FrameReceiver(self.frame.with_suffix('.receiver.json'),deliver)
+        except OSError:
+            self.on_status('Bildleitung konnte nicht gestartet werden. Übertragung erneut starten.');return
         def report(message,live=False):
             nonlocal status
             try:atomic_write(status_path,json.dumps({'message':message,'live':live,'at':time.time()}).encode())
@@ -92,18 +102,15 @@ class MirrorWorker:
         def collect():
             nonlocal captured,last_capture,capture_error
             last=None
-            while not self.stop_event.wait(.001):
+            while not self.stop_event.wait(.002):
                 if not flag.exists():
                     with self.frames_lock:self.frames.clear()
                     last=None;self.stop_event.wait(.1);continue
+                if time.monotonic()-receiver.last_frame<1:continue
                 try:
                     stat=self.frame.stat()
                     if stat.st_mtime_ns==last or time.time()-stat.st_mtime>3:continue
-                    packet,fps=self.packet(self.frame.read_bytes())
-                    last=stat.st_mtime_ns;last_capture=time.monotonic();captured=fps;capture_error=False
-                    with self.frames_lock:
-                        self.frames.append((packet,time.monotonic()))
-                        while len(self.frames)>32 or sum(len(p[0]) for p in self.frames)>4000000:self.frames.popleft()
+                    deliver(self.frame.read_bytes());last=stat.st_mtime_ns
                 except FileNotFoundError:pass
                 except (OSError,ValueError):capture_error=True
         timer=None
@@ -112,13 +119,18 @@ class MirrorWorker:
             timer=ctypes.windll.winmm;timer.timeBeginPeriod(1)
         collector=threading.Thread(target=collect,daemon=True);collector.start()
         try:
-            while not self.stop_event.wait(.08):
+            next_send=0.
+            while not self.stop_event.wait(max(.001,next_send-time.monotonic())):
+                next_send=time.monotonic()+.04
                 if not flag.exists():
                     self._disconnect();report('Übertragung ausgeschaltet');self.stop_event.wait(.4);continue
                 if reconnect.exists():reconnect.unlink(missing_ok=True);self._disconnect()
                 with self.frames_lock:
                     now=time.monotonic()
-                    fresh=[p for p,at in self.frames if now-at<.5];self.frames.clear()
+                    fresh=[];size=0
+                    while self.frames and now-self.frames[0][1]>.75:self.frames.popleft()
+                    while self.frames and len(fresh)<64 and size+len(self.frames[0][0])<=4000000:
+                        packet,_=self.frames.popleft();fresh.append(packet);size+=len(packet)
                 if not fresh:
                     if time.monotonic()-last_capture>3:
                         report('Kein Spielbild: Spielfenster sichtbar lassen' if not capture_error else 'Spielbild momentan nicht lesbar')
@@ -142,6 +154,6 @@ class MirrorWorker:
                 except (OSError,ValueError,http.client.HTTPException):
                     self._disconnect();report('Verbindung wird wiederhergestellt');self.stop_event.wait(.5)
         finally:
-            self.stop_event.set();collector.join(timeout=2);self._disconnect()
+            self.stop_event.set();collector.join(timeout=2);receiver.stop();self._disconnect()
             if timer:timer.timeEndPeriod(1)
             self.frame.unlink(missing_ok=True);status_path.unlink(missing_ok=True)
