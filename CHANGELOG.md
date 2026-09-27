@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.14.1 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.1)
+## [0.14.2 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.2)
+
+27.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Namensgenaue Soul-Link-Paare: `T11` wird ausschließlich mit `T11` verbunden. Sobald bereits eine höhere T-Nummer erkannt wurde, wird ein fehlender älterer Gegenpart automatisch als gescheiterter Fang ergänzt und der vorhandene Partner gesperrt. Der Live-Team-Abgleich läuft fest alle 20 Sekunden und unabhängig von Cloud-Spielstandversionen. Bestehende Runde, Spielstände und Tastenprofile bleiben erhalten. [Update-Schritte](releases/v0.14.2.md).
+
+## [0.14.1](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.1)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 

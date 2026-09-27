@@ -6,7 +6,7 @@ import path from 'node:path';
 import {onlineRoutes} from './online.mjs';
 import {siteAuth} from './auth.mjs';
 import {cloudRoutes} from './cloud.mjs';
-import {encounterFields,placeSeen} from '../lib/encounters.mjs';
+import {alignSeen,encounterFields,placeSeen} from '../lib/encounters.mjs';
 import {encounterRoutes} from './encounters.mjs';
 import {backfillEncounters} from './save-encounters.mjs';
 const dir=process.env.DATA_DIR||'./data';mkdirSync(dir,{recursive:true});
@@ -28,6 +28,14 @@ const cloud=cloudRoutes({db,authorize,send,body});
 // One-time per server start: enrich known Pokémon from existing cloud backups.
 // This never writes any save blob, ROM, team membership or manual route mark.
 console.log('Fangort-Metadaten ergänzt:',backfillEncounters(db));
+function alignExistingRooms(){
+  const update=db.prepare('UPDATE rooms SET state=?,revision=revision+1 WHERE id=?');let changed=0;
+  for(const row of db.prepare('SELECT id,state FROM rooms').all()){
+    try{const state=JSON.parse(row.state);if(alignSeen(state)){update.run(JSON.stringify(state),row.id);changed++;}}catch{}
+  }
+  return changed;
+}
+console.log('Soul-Link-Namen ausgerichtet:',alignExistingRooms());
 const encounters=encounterRoutes({db,authorize,send,body});
 const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');
 if(await auth.guard(req,res,url))return;

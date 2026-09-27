@@ -1,4 +1,4 @@
-// Read-only HGSS team (25 s) and map-position (1 s) snapshots.
+// Read-only HGSS team (20 s) and map-position (1 s) snapshots.
 // Never calls SaveState, touches cartridge saves, or writes emulated memory.
 // SaveData layout: pret/pokeheartgold include/save.h and constants/save_arrays.h.
 #include <QSaveFile>
@@ -35,7 +35,7 @@ static void focusSnapshotTeam(melonDS::NDS* nds)
     static QElapsedTimer teamClock,positionClock;
     static quint32 positionSequence=0;
     static quint32 cachedSaveHeader=0;
-    const bool teamDue=!teamPath.isEmpty()&&(!teamClock.isValid()||teamClock.elapsed()>=25000);
+    const bool teamDue=!teamPath.isEmpty()&&(!teamClock.isValid()||teamClock.elapsed()>=20000);
     const bool positionDue=!positionPath.isEmpty()&&(!positionClock.isValid()||positionClock.elapsed()>=1000);
     if(!teamDue&&!positionDue)return;
     if(teamDue){if(teamClock.isValid())teamClock.restart();else teamClock.start();}

@@ -42,6 +42,12 @@ class FocusTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             config=write_config(Path(temp)/'melonDS.exe',scale=4,fps=120,volume_percent=80,keys=DEFAULT_KEYS,save_directory=Path(temp)/'saves',pause_lost_focus=False)
             self.assertFalse(tomllib.loads(config.read_text())['PauseLostFocus'])
+
+    def test_live_team_uses_fixed_twenty_second_clock(self):
+        source=(Path(__file__).resolve().parents[1]/'focus'/'FocusTeam.inc').read_text()
+        self.assertIn('teamClock.elapsed()>=20000',source)
+        self.assertNotIn('teamClock.elapsed()>=25000',source)
+        self.assertIn('positionClock.elapsed()>=1000',source)
     def test_graphics_settings_roundtrip(self):
         with tempfile.TemporaryDirectory() as temp:
             exe=Path(temp)/'melonDS.exe'

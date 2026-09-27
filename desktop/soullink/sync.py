@@ -108,7 +108,7 @@ class SyncWorker:
                 locked = [p.nickname or f'Pokémon #{p.species}' for p in state.party if p.uid in blocked] if state else []
                 notice = ' · GESPERRT: ' + ', '.join(locked) if locked else ''
                 location=' · Position live' if position else ''
-                self.on_status(f"{'Live-Team · alle 25 Sekunden' if live else 'Tracker verbunden'}{location} · {partner}{notice}")
+                self.on_status(f"{'Live-Team · alle 20 Sekunden' if live else 'Tracker verbunden'}{location} · {partner}{notice}")
                 self.stop_event.wait(1)
         except (OSError, ValueError, KeyError, urllib.error.URLError) as error:
             self.on_status(f"Synchronisierung pausiert: {error}")
