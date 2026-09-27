@@ -43,8 +43,11 @@ class JediTests(unittest.TestCase):
             for key in ('frames','front','back'):
                 for raw in data[key]:
                     pixels=[p for b in raw for p in (b&15,b>>4)]
-                    self.assertIn(12,pixels);self.assertIn(13,pixels)
-                    self.assertIn(2,pixels) # a visible face, not a missing head
+                    for index in data['bladeIndices']:self.assertIn(index,pixels,c['id'])
+                    # New palettes preserve the approved alien artwork exactly.
+                    # Check actual occupied head pixels, not a former color index.
+                    width=32 if key=='frames' else 80
+                    self.assertGreater(sum(bool(pixels[y*width+x]) for y in range(7,17) for x in range(11,21)) if width==32 else sum(bool(v) for v in pixels[:80*50]),25,c['id'])
                     self.assertEqual(raw[-2:],b'\0\0')
             self.assertNotEqual(data['front'],data['back'])
 

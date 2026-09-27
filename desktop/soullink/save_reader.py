@@ -26,11 +26,17 @@ class Pokemon:
     level: int | None
     hp: int | None
     max_hp: int | None
+    met_location: int | None = None
+    origin_game: int | None = None
+    is_egg: bool = False
+    egg_location: int = 0
 
     def api(self) -> dict[str, object]:
         return {
             "uid": self.uid, "species": self.species, "nickname": self.nickname,
             "level": self.level, "hp": self.hp, "maxHp": self.max_hp,
+            "metLocation": self.met_location, "originGame": self.origin_game,
+            "isEgg": self.is_egg, "eggLocation": self.egg_location,
         }
 
 
@@ -119,11 +125,16 @@ def _pokemon(raw: bytes, party: bool) -> Pokemon | None:
     tid = _u32(data, 0x0C)
     uid = f"{pid:08x}-{tid:08x}"
     nickname = _text(data, 0x48, 11)
+    # Gen IV extended Pt/HGSS locations supersede DP's Faraway Place marker.
+    # Source: PKHeX.Core/PKM/PK4.cs and Shared/G4PKM.cs (read-only parsing).
+    met = struct.unpack_from('<H', data, 0x46)[0] or struct.unpack_from('<H', data, 0x80)[0]
+    egg = struct.unpack_from('<H', data, 0x44)[0] or struct.unpack_from('<H', data, 0x7E)[0]
+    encounter = (met or None, data[0x5F], bool(_u32(data, 0x38) & (1 << 30)), egg)
     if party:
         return Pokemon(uid, species, nickname, data[0x8C],
                        struct.unpack_from("<H", data, 0x8E)[0],
-                       struct.unpack_from("<H", data, 0x90)[0])
-    return Pokemon(uid, species, nickname, None, None, None)
+                       struct.unpack_from("<H", data, 0x90)[0], *encounter)
+    return Pokemon(uid, species, nickname, None, None, None, *encounter)
 
 
 def read_save(path: str | Path) -> SaveState:

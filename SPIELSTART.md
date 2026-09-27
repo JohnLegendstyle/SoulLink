@@ -1,5 +1,14 @@
 # Soul Link · Anakin und Obi-Wan
 
+## Update 0.10: neuer Pixelstil, Fangkarte und Teams am Spielbild
+
+- Alle 45 vorhandenen Jedi-Designs sind im freigegebenen Pixelstil überarbeitet, einschließlich Anakin und Obi-Wan. Plo Koons und Yodas bestätigte Vorderansichten bleiben erhalten. Lauf-/Rennfiguren sowie vordere und hintere Trainer-Kampfbilder sind enthalten; die bisherigen Grenzen bei Fahrrad, Surfen, Angeln und Trainerpass bleiben bestehen.
+- Die Website zeigt neben jedem Spielbild die sechs aktuellen Teamplätze, Level, KP und Partnersperren. Die Live-Daten kommen etwa alle 25 Sekunden; ein veralteter oder gespeicherter Stand wird entsprechend beschriftet.
+- Die Johto-/Kanto-Karte zeigt pro Ort links Anakin, rechts Obi-Wan. Ab App 0.10 werden Herkunftsorte vorhandener Team- und Box-Pokémon mitgesendet. Bereits erfasste Pokémon bleiben im Fangbuch, auch wenn sie später aus dem Team verschwinden. Boxen benötigen weiterhin reguläres Speichern.
+- Grün bedeutet Fang/Erhalt erkannt (auch Starter und Geschenke können dazugehören), grau bedeutet **kein Fang erfasst**, nicht automatisch noch frei. Eier und Pokémon aus anderen Editionen werden nicht als HGSS-Fang gewertet. Verpasste Erstbegegnungen selbst rot markieren; manuelle Markierungen lassen sich wieder auf automatische Erkennung stellen. Nur der eigene angemeldete Spieler kann seine Markierungen ändern.
+
+**Bestehende Runde behalten:** Im Spiel speichern, Spielfenster schließen und Cloud-Abgleich abwarten. Neues ZIP in einen separaten Ordner entpacken, neue SoulLink-App öffnen und im Menü **Spiel → Clone Wars: Anakin & Obi-Wan anwenden** die neuen Grafiken auf eure bestehende Runde anwenden. Keine neue Zufallsrunde erstellen und keine Startspielstände über eure Saves kopieren. Vorhandene Sicherungen und die Cloud-Zuordnung bleiben erhalten.
+
 ## Update 0.9: einfachere Übertragung und Live-Teams
 
 **Während einer laufenden Runde nichts ersetzen.** Erst in eurer Spielpause im Spiel speichern, Cloud-Abgleich abwarten und die App schließen. Dann das neue ZIP vollständig in einen neuen Ordner entpacken und daraus starten. Runden und Einstellungen bleiben außerhalb des App-Ordners erhalten. Den vorhandenen Rundenordner weiterverwenden, keine neue Zufallsrunde erzeugen.
@@ -64,7 +73,7 @@ Mit „Vorschau an/aus“ lässt sich die Übertragung abschalten. Hohe FPS ben�
 
 Bei einer neuen randomisierten Runde wird die alte Website-Verknüpfung vorsichtshalber gelöst, damit Fänge und Verluste nicht mit der alten Runde vermischt werden. Eine neue Website-Runde anlegen und beide Apps erneut bestätigen. Alte Spielstände und Website-Runden werden nicht gelöscht.
 
-Der Tracker liest **gespeicherte Spielstände**, keine flüchtigen Kampfdaten. Änderungen erscheinen nach dem Speichern. Ein K. o. wird nur erkannt, wenn mit 0 KP gespeichert wurde. Paare entstehen nach der Reihenfolge erstmals gespeicherter Fänge. Gesperrte Partner werden im Tracker und in der App angezeigt; ihr müsst eure Soul-Link-Regel selbst im Spiel einhalten.
+Der Tracker liest ab 0.9 das geladene Team alle 25 Sekunden und ergänzt es um Boxen aus dem letzten regulären Speicherstand. Paare entstehen nach der Reihenfolge erstmals erfasster Pokémon, nicht nach garantierter Erstbegegnung. Kurzzeitige K.-o.-Zustände zwischen Abfragen können fehlen. Gesperrte Partner werden im Tracker und in der App angezeigt; ihr müsst eure Soul-Link-Regel weiterhin selbst im Spiel einhalten.
 
 ## Plattformen
 

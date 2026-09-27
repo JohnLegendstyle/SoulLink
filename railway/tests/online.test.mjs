@@ -63,9 +63,25 @@ test('private login, shared room, pairing, scopes, preview expiry and persistenc
     assert.equal((await request('/api/room',{method:'PATCH',cookie:john,token:room.readToken,data:{id:room.id,pair:0,name:'Test-Paar'}})).status,200);
     const state=(await (await request('/api/room?id='+room.id,{cookie:john,token:room.readToken})).json()).state;
     assert.equal(state.names['0'],'Test-Paar');assert.deepEqual(state.John.dead,['test-optimus']);
+    // Location metadata enriches existing identities without reordering pairs.
+    const caught={...pokemon('test-optimus'),metLocation:177,originGame:8,isEgg:false,eggLocation:0};
+    await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:2,party:[caught],owned:[caught],fainted:[]}});
+    // Old apps omit metadata: do not erase the newly learned location.
+    await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:3,party:[pokemon('test-optimus')],owned:[],fainted:[]}});
+    const mark={method:'PATCH',cookie:john,token:room.John,data:{id:room.id,location:178,status:'missed'}};
+    assert.equal((await request('/api/encounters',{...mark,token:room.readToken})).status,403);
+    assert.equal((await request('/api/encounters',{...mark,cookie:eddie})).status,403);
+    assert.equal((await request('/api/encounters',{...mark,data:{...mark.data,location:99999}})).status,400);
+    assert.equal((await request('/api/encounters',mark)).status,200);
+    await request('/api/sync',{method:'POST',token:room.John,data:{roomId:room.id,sessionId:'test',sequence:4,party:[],owned:[],fainted:[]}});
+    const mapped=(await (await request('/api/room?id='+room.id,{cookie:john,token:room.readToken})).json()).state;
+    assert.equal(mapped.John.seen[0].metLocation,177);assert.equal(mapped.John.encounters[178].status,'missed');assert.equal(mapped.Eddie.encounters,undefined);
     await stop();await start();john=await login('John');eddie=await login('Eddie');
     assert.equal((await (await request('/api/account',{cookie:eddie})).json()).access.id,room.id);
     assert.equal((await (await request('/api/account',{cookie:john})).json()).access.John,room.John);
+    const persisted=(await (await request('/api/room?id='+room.id,{cookie:john,token:room.readToken})).json()).state;
+    assert.equal(persisted.John.encounters[178].status,'missed');assert.equal(persisted.John.seen[0].metLocation,177);
+    assert.equal((await request('/api/encounters',{...mark,cookie:john,data:{...mark.data,status:'auto'}})).status,200);
     await request('/api/logout',{method:'POST',cookie:john});assert.equal((await request('/api/account',{cookie:john})).status,401);
   }finally{await stop();}
 });

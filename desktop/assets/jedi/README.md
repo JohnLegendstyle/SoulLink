@@ -4,7 +4,8 @@ Hand-authored unofficial fan art. Characters belong to Lucasfilm. No Nintendo
 graphics or downloaded Star Wars artwork are distributed in this folder.
 The requested built-in image generation failed; the user explicitly chose manual
 creation with no image-generation API. All shipped pixels are drawn by the
-versioned coordinate source `desktop/tools/draw_jedi.py` using Pillow as a local
+versioned coordinate sources `desktop/tools/draw_jedi_v2.py` and
+`desktop/tools/jedi_approved.py` using Pillow as a local
 rasterizer, without a model, API key, tracing, or external image inputs.
 
 45 Jedi/Padawan designs are in `roster.json`, including Anakin and Obi-Wan.
@@ -38,4 +39,10 @@ Technical references (data-layout facts, no game pixels copied):
 - https://github.com/pret/pokeheartgold/blob/master/lib/include/nnsys/g2d/fmt/g2d_Cell_data.h
 - https://www.starwars.com/databank/the-clone-wars-all
 
-Rebuild: `python desktop/tools/draw_jedi.py` (development Pillow installation).
+Revision 2 adopts the approved Plo Koon/Yoda pixel language for all 45 designs.
+Their first front frames remain pixel-identical to the approved native drawings.
+Every character includes explicit palette indices for its two blade colors;
+palette index meanings are not assumed to be identical between alien designs.
+
+Rebuild: `python desktop/tools/draw_jedi_v2.py` (development Pillow installation).
+`draw_jedi.py` retains the roster and legacy source for comparison only.

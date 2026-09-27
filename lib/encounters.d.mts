@@ -1,0 +1,11 @@
+export type CatchMon={uid:string,nickname:string,species:number,metLocation?:number|null,originGame?:number|null,isEgg?:boolean,eggLocation?:number|null};
+export type CatchMember={seen:CatchMon[],encounters?:Record<string,{status:'caught'|'missed'|'open',updatedAt:number}>};
+export type Place={id:number,name:string,region:'Johto'|'Kanto',x:number,y:number};
+export type CatchStatus='caught'|'missed'|'open'|'unknown';
+export const places:Place[];
+export const placeIds:Set<number>;
+export const routeLines:Record<'Johto'|'Kanto',number[][]>;
+export const statusLabels:Record<CatchStatus,string>;
+export function encounterFields(v:unknown):Partial<CatchMon>;
+export function evidence(member:CatchMember,id:number):CatchMon[];
+export function placeStatus(member:CatchMember,id:number):CatchStatus;
