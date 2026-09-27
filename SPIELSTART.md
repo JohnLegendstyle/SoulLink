@@ -1,5 +1,11 @@
 # Soul Link · Anakin und Obi-Wan
 
+## Update 0.11: App-Updater
+
+0.11 einmalig manuell herunterladen. Danach prüft der Reiter **Updates** beim Start auf stabile GitHub-Versionen, zeigt Änderungen und bietet einen bestätigten Download mit Prüfsummenprüfung an. Die neue App liegt separat im Benutzerprofil unter `SoulLink/Updates`; alte App, Runde, Einstellungen und Website-Verbindung bleiben erhalten.
+
+Zum Wechsel **im Spiel speichern**, Spielfenster schließen und Cloud-Abgleich abwarten, dann **Zur neuen Version wechseln**. Kein Wechsel während eines laufenden Spiels oder Abgleichs. Bestehende Runde weiterverwenden; keine Startspielstände importieren. Verknüpfungen werden nicht umgebogen: Die neue App am im Updater angezeigten Pfad starten bzw. neu anheften. Grafikänderungen bleiben eine getrennte Aktion im Spiel-Menü. Alte Apps werden nicht automatisch gelöscht.
+
 ## Update 0.10: neuer Pixelstil, Fangkarte und Teams am Spielbild
 
 - Alle 45 vorhandenen Jedi-Designs sind im freigegebenen Pixelstil überarbeitet, einschließlich Anakin und Obi-Wan. Plo Koons und Yodas bestätigte Vorderansichten bleiben erhalten. Lauf-/Rennfiguren sowie vordere und hintere Trainer-Kampfbilder sind enthalten; die bisherigen Grenzen bei Fahrrad, Surfen, Angeln und Trainerpass bleiben bestehen.

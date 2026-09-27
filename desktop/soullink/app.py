@@ -58,6 +58,9 @@ class SoulLinkApp(tk.Tk):
         self.processes = {}
         self.runtime = {}
         self.creating = False
+        self.update_busy = False
+        self.update_info = None
+        self.update_ready = None
         self.events = queue.Queue()
         self._style()
         self._menu()
@@ -72,6 +75,7 @@ class SoulLinkApp(tk.Tk):
             except (OSError, ValueError, KeyError):
                 self.status_var.set('Letzte Runde nicht gefunden. Bitte vorhandene Runde öffnen.')
         if self.connection_var.get(): self.sync_status.set('Verbunden · Cloud-Abgleich erfolgt vor dem Spielstart.')
+        self.after(2500, self.check_updates)
 
     def _load(self) -> dict[str, object]:
         defaults: dict[str, object] = {
@@ -143,6 +147,7 @@ class SoulLinkApp(tk.Tk):
         game.add_command(label="Beenden", command=self.close)
         menu.add_cascade(label="Spiel", menu=game)
         menu.add_command(label="Emulator-Einstellungen", command=lambda: self.tabs.select(self.settings_tab))
+        menu.add_command(label="Updates", command=lambda: self.tabs.select(self.update_tab))
         self.config(menu=menu)
 
     def _layout(self) -> None:
@@ -161,6 +166,60 @@ class SoulLinkApp(tk.Tk):
         self._round_ui()
         self._settings_ui()
         self._sync_ui()
+        self.update_tab = ttk.Frame(self.tabs, padding=22, style='Panel.TFrame')
+        self.tabs.add(self.update_tab,text='Updates')
+        self.update_status = tk.StringVar(value=f'Installiert: {__version__} · Update-Prüfung wird vorbereitet.')
+        ttk.Label(self.update_tab,textvariable=self.update_status,style='Panel.TLabel',wraplength=780).pack(anchor='w',pady=12)
+        ttk.Label(self.update_tab,text='Neue App separat installieren. Spielstände, Runden und alte App bleiben erhalten.\nWechsel erst nach dem Speichern, Schließen des Spiels und Cloud-Abgleich.\nJedi-Grafiken werden nicht ungefragt auf eure ROM angewendet.',style='Panel.TLabel',wraplength=780).pack(anchor='w',pady=8)
+        row=ttk.Frame(self.update_tab,style='Panel.TFrame');row.pack(fill='x',pady=12)
+        ttk.Button(row,text='Nach Updates suchen',command=self.check_updates).pack(side='left',padx=4)
+        self.update_download=ttk.Button(row,text='Update herunterladen',command=self.download_update,state='disabled')
+        self.update_download.pack(side='left',padx=4)
+        self.update_start=ttk.Button(row,text='Zur neuen Version wechseln',command=self.activate_update,state='disabled')
+        self.update_start.pack(side='left',padx=4)
+        self.update_notes=tk.Text(self.update_tab,wrap='word',height=18,bg=COLORS['panel2'],fg=COLORS['text'],relief='flat')
+        self.update_notes.pack(fill='both',expand=True);self.update_notes.configure(state='disabled')
+
+    def check_updates(self):
+        if self.update_busy: return
+        self.update_busy=True
+        self.update_status.set(f'Installiert: {__version__} · Prüfe stabile GitHub-Version …')
+        def work():
+            try:
+                from .updater import check
+                self.events.put(('update-found',check(__version__)))
+            except Exception as error: self.events.put(('update-error',str(error)))
+        threading.Thread(target=work,daemon=True).start()
+
+    def download_update(self):
+        if self.update_busy or not self.update_info: return
+        info=dict(self.update_info)
+        if not messagebox.askyesno('Update herunterladen',f"Version {info['version']} herunterladen ({info['size']/1024/1024:.0f} MB)?\n\nDie neue App wird separat abgelegt. Eure Runde und alte App werden nicht überschrieben."): return
+        self.update_busy=True;self.update_download.state(['disabled'])
+        self.update_start.state(['disabled']);self.update_ready=None
+        def work():
+            try:
+                from .updater import prepare
+                app=prepare(info,config_root()/'Updates',lambda n:self.events.put(('update-progress',n)))
+                self.events.put(('update-ready',app))
+            except Exception as error: self.events.put(('update-error',str(error)))
+        threading.Thread(target=work,daemon=True).start()
+
+    def activate_update(self):
+        if not self.update_ready or self.update_busy: return
+        if self.cloud_busy(): return
+        if self.creating or self.pairing_active:
+            messagebox.showinfo('Bitte warten','Rundenbearbeitung oder Website-Verbindung noch nicht abgeschlossen.');return
+        if not messagebox.askyesno('Zur neuen App wechseln','Spiel gespeichert und Cloud-Abgleich abgeschlossen?\n\nDie neue Version wird gestartet und dieser Launcher geschlossen. Die alte App bleibt als Rückfalloption erhalten.'): return
+        try:
+            self._save()
+            app=Path(self.update_ready)
+            if not app.resolve().is_relative_to((config_root()/'Updates').resolve()): raise ValueError('Ungültiger Update-Pfad.')
+            if platform.system()=='Darwin': subprocess.run(['open','-n',str(app)],check=True,timeout=20)
+            else: subprocess.Popen([str(app)],cwd=app.parent)
+            self.stop_sync();self.pair_stop.set();self.destroy()
+        except Exception as error:
+            messagebox.showerror('Update konnte nicht starten',str(error)+'\nDie bisherige App und eure Daten bleiben erhalten.')
 
     def _field(self, parent: ttk.Frame, row: int, label: str, variable: tk.StringVar, browse) -> None:
         ttk.Label(parent, text=label, style="Panel.TLabel").grid(row=row, column=0, sticky="w", pady=8)
@@ -539,6 +598,23 @@ class SoulLinkApp(tk.Tk):
             except (OSError,ValueError,AttributeError): pass
         while not self.events.empty():
             kind,value = self.events.get_nowait()
+            if kind.startswith('update-'):
+                if kind=='update-progress': self.update_status.set(f'Update herunterladen: {value}% · Danach Prüfsumme und Paket prüfen …')
+                elif kind=='update-ready':
+                    self.update_busy=False;self.update_ready=value
+                    self.update_status.set('Update geprüft und bereit. Nach Spielende zur neuen Version wechseln.\nNeue App: '+str(value))
+                    self.update_start.state(['!disabled'])
+                elif kind=='update-error':
+                    self.update_busy=False;self.update_status.set('Update nicht verfügbar: '+value+' · Eure App bleibt unverändert.')
+                    if self.update_info:self.update_download.state(['!disabled'])
+                elif kind=='update-found':
+                    self.update_busy=False;self.update_info=value
+                    self.update_download.state(['!disabled'] if value else ['disabled'])
+                    self.tabs.tab(self.update_tab,text='Updates · NEU' if value else 'Updates')
+                    self.update_status.set(f"Installiert: {__version__} · Neue Version: {value['version']}" if value else f'Installiert: {__version__} · Kein neuerer stabiler Release verfügbar.')
+                    self.update_notes.configure(state='normal');self.update_notes.delete('1.0','end')
+                    self.update_notes.insert('1.0',value['notes'] if value else 'Ihr verwendet bereits den neuesten verfügbaren Stand.');self.update_notes.configure(state='disabled')
+                continue
             if kind=='pair-ended': self.pairing_active=False
             if kind=='cloud-status': self.cloud_status.set(value)
             elif kind=='cloud-ready':
