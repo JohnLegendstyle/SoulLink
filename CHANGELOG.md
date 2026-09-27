@@ -1,11 +1,19 @@
 # Versionen und Änderungen
 
+## [0.12.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.12.0)
+
+27.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Direkte lokale Bildleitung statt Dateipolling, weniger Sendepausen und größere begrenzte Pakete. Die Website taktet anhand tatsächlich empfangener Bilder statt der eingestellten Ziel-FPS. Übertragungsvorschau maximal 720 × 540; interne Spielauflösung unverändert. Beide Apps aktualisieren, Website neu laden. [Update-Schritte und Grenzen](releases/v0.12.0.md).
+
+Geprüft: 58 lokale Python-Tests, 15 Website-/Protokolltests, Typprüfung und Website-Build. Der Lasttest überträgt 240 synthetische 16-KB-Bildpakete mit 120 FPS trotz 300-ms-Empfangsbestätigungen vollständig. Das ist keine Messung auf euren Windows-Rechnern.
+
 ## Website · 27.09.2026 (kein App-Update erforderlich)
 
 - Volle Fensterbreite; Anakins Team links neben seinem Spielbild, Obi-Wans Team rechts.
 - Fehlende Fangorte bekannter Pokémon werden aus bereits gespeicherten Cloud-Spielständen nachgetragen (Pokémon-Bericht/Herkunftsort). Teams, K.-o.-Status, manuelle Markierungen und Save-Dateien bleiben unverändert. Nicht mehr vorhandene Pokémon lassen sich nur zuordnen, wenn sie noch in einem aufbewahrten Cloud-Spielstand enthalten sind.
 
-## [0.11.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.11.0)
+## [0.11.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.11.0)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 

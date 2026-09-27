@@ -1,5 +1,9 @@
 # Soul Link · Anakin und Obi-Wan
 
+## Update 0.12: Bildübertragung
+
+Beide Spieler aktualisieren die App im Reiter **Updates** (oder die aktuelle ZIP separat entpacken) und laden die Website neu. Die neue lokale Bildleitung vermeidet verlorene Bilder durch überschriebene Dateien. Empfangene Bilder werden auf der Website gleichmäßiger abgespielt. Nur die Übertragungsvorschau ist auf maximal 720 × 540 begrenzt; eure interne Spielauflösung bleibt erhalten. Vor dem App-Wechsel im Spiel speichern, Spiel schließen und Cloud-Abgleich abwarten. Bestehende Runde öffnen, keine Startspielstände importieren. FPS bleiben von Verbindung, Rechner und Bildschirm abhängig.
+
 ## Update 0.11: App-Updater
 
 0.11 einmalig manuell herunterladen. Danach prüft der Reiter **Updates** beim Start auf stabile GitHub-Versionen, zeigt Änderungen und bietet einen bestätigten Download mit Prüfsummenprüfung an. Die neue App liegt separat im Benutzerprofil unter `SoulLink/Updates`; alte App, Runde, Einstellungen und Website-Verbindung bleiben erhalten.

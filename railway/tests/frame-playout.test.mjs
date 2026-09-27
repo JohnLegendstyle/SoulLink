@@ -16,3 +16,20 @@ for(const [rate,batch,screen,target] of [[64,500,60,120],[60,100,60,120],[120,10
     p.reset();assert.equal(p.take(100000,0),0);
   });
 }
+
+test('uneven network batches stay bounded without manufacturing frames',()=>{
+  const p=new FramePlayout();let queue=0,shown=0,consumed=0,arrivals=0,nextBatch=0,previous=0,index=0;
+  const gaps=[80,170,90,200,120,60,180];
+  for(let now=0;now<20000;now+=1000/60){
+    if(now>=nextBatch){
+      const count=Math.round((nextBatch-previous)*.06);previous=nextBatch;
+      for(let i=0;i<count;i++){p.receive(nextBatch,120);queue++;arrivals++;}
+      nextBatch+=gaps[index++%gaps.length];
+    }
+    const take=p.take(now,queue);queue-=take;consumed+=take;
+    if(take&&now>5000)shown++;
+    assert.ok(queue<60);assert.ok(consumed<=arrivals);
+  }
+  assert.ok(shown/15>48,`displayed ${shown/15}`);
+  assert.equal(consumed+queue,arrivals);
+});

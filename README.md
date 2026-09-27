@@ -2,10 +2,11 @@
 
 Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, überprüfbaren Start-Spielständen und gemeinsamem Railway-Tracker.
 
-- **[Aktuelle stabile Version: 0.11.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.11.0)**
-- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.11.0/SoulLink-0.11.0-Windows-x64.zip)
-- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.11.0/SoulLink-0.11.0-macOS-arm64.zip)
+- **[Aktuelle stabile Version: 0.12.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.12.0)**
+- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.12.0/SoulLink-0.12.0-Windows-x64.zip)
+- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.12.0/SoulLink-0.12.0-macOS-arm64.zip)
 - [Versionsübersicht und Änderungsverlauf](CHANGELOG.md)
+- [Update 0.12.0: flüssigere Bildübertragung](releases/v0.12.0.md) – beide Spieler aktualisieren; bestehende Runde behalten.
 - [Update 0.10.0: Spielstände behalten und neue Jedi-Grafiken aktivieren](releases/v0.10.0.md)
 - [Update 0.11.0: eingebauter App-Updater](releases/v0.11.0.md) – einmalig manuell installieren, zukünftige stabile Versionen im Reiter **Updates** herunterladen und nach Spielende wechseln.
 - [Spielstart und Bedienung](SPIELSTART.md)
