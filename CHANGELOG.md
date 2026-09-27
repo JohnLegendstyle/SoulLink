@@ -1,6 +1,14 @@
 # Versionen und Änderungen
 
-## [0.12.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.12.0)
+## [0.12.1 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.12.1)
+
+27.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Versionsunabhängige vollständige Tasten-/Controllerprofile pro lokalem Spieler, Übernahme alter Profile, Sicherung der Vorgängerversion, Erhalt deaktivierter/modifizierter/rechter Tasten und zusätzlicher Hotkeys. Tastenübernahme unabhängig von Grafik-Einstellungen; atomare Speicherung der Launcher-Einstellungen. Bewusste Änderungen im Launcher haben Vorrang vor alten Profilen und werden auch vor dem Update-Wechsel gespeichert. Enthält den FPS-Fix aus 0.12.0. [Update-Schritte und Wiederherstellungsgrenzen](releases/v0.12.1.md).
+
+64 Python-Tests inklusive simuliertem Emulator-Versionswechsel, Profil-Isolation, defekter Grafik-Konfiguration, Sicherungswiederherstellung und Tastenänderungen im Launcher. Tatsächliche lokale Einstellungen auf den Rechnern der Spieler sind nicht von hier überprüft.
+
+## [0.12.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.12.0)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 
