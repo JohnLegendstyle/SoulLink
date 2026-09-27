@@ -77,7 +77,7 @@ class UpdaterTests(unittest.TestCase):
         info=dict(version='0.11.0',url=u.REPO+'/test',sha256=hashlib.sha256(payload).hexdigest(),size=len(payload),label='Windows-x64')
         def response(*args,**kwargs):
             stream=io.BytesIO(payload);stream.url='https://release-assets.githubusercontent.com/test';return stream
-        with tempfile.TemporaryDirectory() as tmp,patch.object(u.urllib.request,'urlopen',response):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(u.urllib.request,'urlopen',response),patch.object(u,'tls_context',return_value=None):
             root=Path(tmp)
             app=u.prepare(info,root);self.assertEqual(app.read_bytes(),b'app')
             previous=set(root.iterdir());info['sha256']='0'*64
