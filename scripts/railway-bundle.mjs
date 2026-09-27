@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
-const files = Object.fromEntries(['server.mjs','auth.mjs','online.mjs','live.mjs','cloud.mjs','encounters.mjs','login.html'].map(name=>[name,fs.readFileSync('railway/'+name).toString('base64')]));
+const files = Object.fromEntries(['server.mjs','auth.mjs','online.mjs','live.mjs','cloud.mjs','encounters.mjs','save-encounters.mjs','login.html'].map(name=>[name,fs.readFileSync('railway/'+name).toString('base64')]));
 // Keep the same relative imports in the source tree and deployment bundle.
 for(const name of ['server.mjs','encounters.mjs'])files[name]=Buffer.from(fs.readFileSync('railway/'+name,'utf8').replaceAll('../lib/encounters.mjs','./lib/encounters.mjs')).toString('base64');
 files['lib/encounters.mjs']=fs.readFileSync('lib/encounters.mjs').toString('base64');

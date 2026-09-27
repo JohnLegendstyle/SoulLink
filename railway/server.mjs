@@ -8,6 +8,7 @@ import {siteAuth} from './auth.mjs';
 import {cloudRoutes} from './cloud.mjs';
 import {encounterFields} from '../lib/encounters.mjs';
 import {encounterRoutes} from './encounters.mjs';
+import {backfillEncounters} from './save-encounters.mjs';
 const dir=process.env.DATA_DIR||'./data';mkdirSync(dir,{recursive:true});
 const db=new DatabaseSync(path.join(dir,'soullink.sqlite'));db.exec('PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS rooms(id TEXT PRIMARY KEY, read_hash TEXT NOT NULL,john_hash TEXT NOT NULL,eddie_hash TEXT NOT NULL,state TEXT NOT NULL,revision INTEGER NOT NULL DEFAULT 0,created_at INTEGER NOT NULL);');
 const hash=s=>createHash('sha256').update(s).digest('hex'),key=()=>randomBytes(32).toString('hex');
@@ -23,6 +24,9 @@ const rate=new Map();
 const online=onlineRoutes({authorize,send,body,hash,key});
 const auth=siteAuth(db,send,body);
 const cloud=cloudRoutes({db,authorize,send,body});
+// One-time per server start: enrich known Pokémon from existing cloud backups.
+// This never writes any save blob, ROM, team membership or manual route mark.
+console.log('Fangort-Metadaten ergänzt:',backfillEncounters(db));
 const encounters=encounterRoutes({db,authorize,send,body});
 const server=http.createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');
 if(await auth.guard(req,res,url))return;
