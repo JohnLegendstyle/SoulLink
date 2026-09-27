@@ -1,6 +1,14 @@
 # Versionen und Änderungen
 
-## [0.12.1 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.12.1)
+## [0.13.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.13.0)
+
+27.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Bildübertragung entfernt: kein Capture-/Upload-Start in der App, auch nicht durch alte Einstellungen oder geerbte Umgebungsvariablen. Alte Website-Bild-Endpunkte sind abgeschaltet. Teams, Fangdaten und Cloud-Saves bleiben aktiv. Website mit kompakter Teamübersicht, Fangkarte, Soul-Link-Paaren und optionalem größenverstellbarem Discord-Platzhalter (bei Eddie standardmäßig an). Kein eingebetteter Discord-Stream.
+
+In alten laufenden Apps „Übertragung stoppen“, anschließend in einer Spielpause aktualisieren. Tastenprofile aus 0.12.1 bleiben erhalten. [Update-Schritte und Grenzen](releases/v0.13.0.md). 65 Python-Tests, 15 Website-/Protokolltests, Typprüfung und Website-Build; neue Website mit realen Teamständen visuell geprüft. Alte Übertragungsprotokoll-Tests bleiben als historische Regressionstests vorhanden, werden aber nicht mehr von der Website verwendet.
+
+## [0.12.1](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.12.1)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 
