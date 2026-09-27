@@ -2,6 +2,7 @@
 import {useState} from 'react';
 import {places,routeLines,evidence,placeStatus,statusLabels,type CatchMember,type CatchStatus} from '@/lib/encounters.mjs';
 import type {SoulAccess} from './soul-online';
+import {RegionTerrain} from './region-terrain';
 const colors:Record<CatchStatus,string>={caught:'#78dab2',missed:'#ee989d',open:'#f0c979',unknown:'#4b6070'};
 const players=['John','Eddie'] as const;
 const names={John:'Anakin',Eddie:'Obi-Wan'};
@@ -20,15 +21,11 @@ export function EncounterMap({access,members,onChange}:{access:SoulAccess|null,m
     <div className="catch-legend">{(Object.keys(colors) as CatchStatus[]).map(s=><span key={s}><i style={{background:colors[s]}}/>{statusLabels[s]}</span>)}</div>
     <div className="catch-layout"><div className="catch-chart" tabIndex={0} aria-label="Karte horizontal verschiebbar">
       <svg viewBox="0 0 860 640" aria-label={`${region}: schematische Fangkarte`}>
-        <defs><pattern id="map-grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#9ed9ca" strokeOpacity=".045"/></pattern></defs>
-        <rect width="860" height="640" fill="#102630"/><path d="M15 60Q180 15 330 55T840 60V445Q750 405 710 555L300 620 235 520 35 545Z" fill="#1a3939"/>
-        <path d="M310 35L390 135 470 35 550 155 655 40 805 155" fill="none" stroke="#2a4845" strokeWidth="35" strokeLinejoin="round"/>
-        <rect width="860" height="640" fill="url(#map-grid)"/>
-        <text x="25" y="610" fill="#8eb6b8" fontSize="18" letterSpacing="5">{region.toUpperCase()}</text><text x="835" y="615" fill="#9db2b7" fontSize="11" textAnchor="end">SCHEMATISCH · NICHT MASSSTABSGETREU</text>
-        {routeLines[region].map((line,i)=><polyline key={i} points={line.map(id=>places.find(p=>p.id===id)).filter(Boolean).map(p=>`${p!.x},${p!.y}`).join(' ')} fill="none" stroke="#496265" strokeWidth="6" strokeLinejoin="round"/>)}
+        <RegionTerrain region={region}/>
+        {routeLines[region].map((line,i)=>{const points=line.map(id=>places.find(p=>p.id===id)!).filter(Boolean);const d=points.map((p,j)=>j?`H${p.x}V${p.y}`:`M${p.x} ${p.y}`).join(' ');return <g key={i} shapeRendering="crispEdges"><path d={d} fill="none" stroke="#927b55" strokeWidth="12"/><path d={d} fill="none" stroke="#f6dda2" strokeWidth="6"/></g>;})}
         {visible.map(p=>{const a=placeStatus(members.John,p.id),b=placeStatus(members.Eddie,p.id);return <g key={p.id} role="button" tabIndex={0} aria-label={`${p.name}. Anakin: ${statusLabels[a]}. Obi-Wan: ${statusLabels[b]}`} aria-pressed={selected===p.id} onClick={()=>setSelected(p.id)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setSelected(p.id);}}} className="catch-node" transform={`translate(${p.x} ${p.y})`}>
-          <circle r="18" fill="#0e2029" stroke={selected===p.id?'#fff0bd':'#38545b'} strokeWidth={selected===p.id?3:1}/><path d="M-1 -12A12 12 0 0 0 -1 12Z" fill={colors[a]}/><path d="M1 -12A12 12 0 0 1 1 12Z" fill={colors[b]}/>
-          <text y={p.id>=149&&p.id<=196?4:31} textAnchor="middle" fill={p.id>=149&&p.id<=196?'#07151a':'#e5eddf'} fontSize={p.id>=149&&p.id<=196?12:10} fontWeight="bold" paintOrder="stroke" stroke={p.id>=149&&p.id<=196?'none':'#102630'} strokeWidth="3">{p.name.replace('Route ','')}</text>
+          <rect className="catch-marker" x="-17" y="-15" width="34" height="30" rx="2" fill="#f8f0d0" stroke={selected===p.id?'#a53f39':'#425f57'} strokeWidth={selected===p.id?4:2}/><rect x="-13" y="-11" width="12" height="22" fill={colors[a]}/><rect x="1" y="-11" width="12" height="22" fill={colors[b]}/>
+          <text y={p.id>=149&&p.id<=196?4:29} textAnchor="middle" fill={p.id>=149&&p.id<=196?'#ffffff':'#263e35'} fontSize={p.id>=149&&p.id<=196?12:10} fontWeight="bold" paintOrder="stroke" stroke={p.id>=149&&p.id<=196?'#263e35':'#f5edce'} strokeWidth="3">{p.name.replace('Route ','')}</text>
         </g>;})}
       </svg>
     </div><aside className="catch-detail"><label htmlFor="catch-search">Route oder Ort suchen</label><input id="catch-search" value={query} onChange={e=>setQuery(e.target.value)} placeholder="z. B. Route 29"/><select aria-label="Ort auswählen" value={selected} onChange={e=>setSelected(Number(e.target.value))}>{visible.filter(p=>p.name.toLowerCase().includes(query.toLowerCase())||p.id===selected).map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</select>
