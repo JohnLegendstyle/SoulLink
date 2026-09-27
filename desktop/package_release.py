@@ -5,6 +5,7 @@ import platform
 import subprocess
 import zipfile
 import sys
+from soullink import __version__
 
 root = Path(__file__).resolve().parent
 subprocess.run([sys.executable,'-m','unittest','discover','-s','tests','-v'],cwd=root,check=True)
@@ -30,7 +31,7 @@ subprocess.run([sys.executable,'-m','pip','download','--no-deps',
                 '--dest',str(folder / 'Quelltexte')],check=True)
 for filename in ('SPIELSTART.md','THIRD_PARTY_NOTICES.md','LICENSE'):
     shutil.copy2(root.parent / filename,folder / filename)
-archive = release / (folder.name + '.zip')
+archive = release / f'SoulLink-{__version__}-{label}.zip'
 executable=folder/'SoulLink.exe' if windows else folder/'SoulLink.app'/'Contents'/'MacOS'/'SoulLink'
 try:
     subprocess.run([str(executable),'--self-test'],check=True,timeout=60)
