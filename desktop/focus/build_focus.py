@@ -15,7 +15,7 @@ import urllib.request
 import zipfile
 from .apply_focus import apply
 
-VERSION='focus-0.12.0'
+VERSION='focus-0.12.1'
 
 
 def run(args, **kwargs):

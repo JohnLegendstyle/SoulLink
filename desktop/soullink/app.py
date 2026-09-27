@@ -93,6 +93,12 @@ class SoulLinkApp(tk.Tk):
         from .melonds import preferred_emulator
         bundled = install_root() / 'Emulator' / ('melonDS.app' if platform.system() == 'Darwin' else 'melonDS.exe')
         defaults['emulator']=preferred_emulator(str(defaults['emulator']),bundled)
+        from .controls import load_profile,key_label
+        player=defaults.get('player','Optimus')
+        if player in ('Optimus','Bee'):
+            profile=load_profile(config_root(),player)
+            defaults['keys']={**DEFAULT_KEYS,**defaults.get('keys',{}),
+                **{key:key_label(value) for key,value in profile['Keyboard'].items() if key in DEFAULT_KEYS}}
         return defaults
 
     def _save(self) -> None:
@@ -109,8 +115,8 @@ class SoulLinkApp(tk.Tk):
             "mirror": bool(self.mirror_var.get()),
         })
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
-        self.state_file.write_text(json.dumps(self.settings, indent=2, ensure_ascii=False), encoding="utf-8")
-        if os.name != 'nt': self.state_file.chmod(0o600)
+        from .cloud import atomic_write
+        atomic_write(self.state_file,json.dumps(self.settings, indent=2, ensure_ascii=False).encode('utf-8'))
 
     def _style(self) -> None:
         style = ttk.Style(self)
@@ -301,6 +307,7 @@ class SoulLinkApp(tk.Tk):
         ttk.Combobox(display,textvariable=self.layout_var,state='readonly',values=('Focus','Nebeneinander','Untereinander'),width=16).pack(side='left',padx=10)
         ttk.Checkbutton(display,text='Ganzzahlige Skalierung',variable=self.integer_var).pack(side='left',padx=10)
         keys = dict(self.settings.get("keys", DEFAULT_KEYS))
+        self.key_baseline={name:str(keys.get(name,default)) for name,default in DEFAULT_KEYS.items()}
         self.key_vars: dict[str, tk.StringVar] = {}
         labels = tuple((n,n) for n in ('A','B','X','Y','L','R','Start','Select','Up','Down','Left','Right')) + (("HK_FastForward", "Schnelllauf"),("HK_FullscreenToggle", "Vollbild"))
         box = ttk.Frame(tab, style="Panel.TFrame")
@@ -408,10 +415,25 @@ class SoulLinkApp(tk.Tk):
     def save_emulator_settings(self) -> None:
         try:
             for v in self.key_vars.values(): qt_key(v.get())
+            self.persist_controls(self.player_var.get())
             self._save()
             messagebox.showinfo("Einstellungen", "Gespeichert. Die Einstellungen gelten beim nächsten Spielstart.")
         except Exception as error:
             messagebox.showerror("Einstellungen", str(error))
+
+    def persist_controls(self,player,native=None):
+        from .controls import load_profile,read_native,save_profile,key_label
+        from .melonds import portable_directory
+        profile=read_native(portable_directory(native)/'melonDS.toml') if native else load_profile(config_root(),player)
+        if native is None:
+            for key,var in self.key_vars.items():
+                if key not in profile['Keyboard'] or var.get()!=self.key_baseline.get(key):
+                    profile['Keyboard'][key]=qt_key(var.get())
+        save_profile(config_root(),player,profile)
+        for key,value in profile['Keyboard'].items():
+            if key in self.key_vars:self.key_vars[key].set(key_label(value))
+        self.key_baseline={key:var.get() for key,var in self.key_vars.items()}
+        return profile
 
     def apply_character_skins(self) -> None:
         if self.cloud_busy(): return
@@ -500,6 +522,7 @@ class SoulLinkApp(tk.Tk):
                 raise RuntimeError('Bitte das andere Spielfenster vor dem Spielerwechsel schließen.')
             if not pack:
                 raise RuntimeError("Bitte zuerst eine neue randomisierte Runde erstellen.")
+            input_profile=self.persist_controls(player)
             self._save()
             access=self.online_access()
             if self.connection_var.get() and not access:
@@ -524,7 +547,7 @@ class SoulLinkApp(tk.Tk):
                          keys={name: value.get() for name, value in self.key_vars.items()},
                          save_directory=pack.rom.parent,pixel_filter=self.filter_var.get()=='Weich',
                          integer_scaling=bool(self.integer_var.get()),screen_layout=str(self.settings['screen_layout']),
-                         pause_lost_focus=not bool(access and self.mirror_var.get()))
+                         pause_lost_focus=not bool(access and self.mirror_var.get()),input_profile=input_profile)
             request=config_root()/'requests'/(uuid.uuid4().hex+'.json')
             request.parent.mkdir(parents=True,exist_ok=True)
             self.stop_sync()
@@ -578,6 +601,11 @@ class SoulLinkApp(tk.Tk):
                 self.mirror_var.set(flag.exists())
                 self.mirror_worker.stop();self.mirror_worker=None
             del self.runtime[player]
+            try:
+                self.persist_controls(player,native=executable)
+                self._save()
+            except (OSError,ValueError,KeyError,TypeError):
+                self.status_var.set('Tastenprofil konnte nicht übernommen werden; die letzte Sicherung bleibt erhalten.')
             try:
                 values=read_runtime_settings(executable)
                 self.scale_var.set(str(values['scale']));self.fps_var.set(str(values['fps']));self.volume_var.set(values['volume'])

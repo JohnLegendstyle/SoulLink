@@ -1,5 +1,9 @@
 # Soul Link · Anakin und Obi-Wan
 
+## Update 0.12.1: eigene Tasten behalten
+
+Tastatur, Controller und zusätzliche Hotkeys liegen jetzt versionsunabhängig im Benutzerprofil unter `SoulLink/Controls`, getrennt nach lokalem Spieler. Die neueste gültige Belegung aus alten Emulator-Profilen wird übernommen; alte Profilordner bitte bis zur Kontrolle behalten. Deaktivierte Tasten und Sondertasten bleiben erhalten. Bereits überschriebene Einstellungen können nur aus noch vorhandenen alten Profilen zurückgeholt werden. Keine neue Runde nötig. Direkt von 0.11 auf 0.12.1 aktualisieren; 0.12.0 ist kein notwendiger Zwischenschritt.
+
 ## Update 0.12: Bildübertragung
 
 Beide Spieler aktualisieren die App im Reiter **Updates** (oder die aktuelle ZIP separat entpacken) und laden die Website neu. Die neue lokale Bildleitung vermeidet verlorene Bilder durch überschriebene Dateien. Empfangene Bilder werden auf der Website gleichmäßiger abgespielt. Nur die Übertragungsvorschau ist auf maximal 720 × 540 begrenzt; eure interne Spielauflösung bleibt erhalten. Vor dem App-Wechsel im Spiel speichern, Spiel schließen und Cloud-Abgleich abwarten. Bestehende Runde öffnen, keine Startspielstände importieren. FPS bleiben von Verbindung, Rechner und Bildschirm abhängig.

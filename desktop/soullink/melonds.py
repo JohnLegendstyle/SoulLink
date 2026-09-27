@@ -34,7 +34,7 @@ DEFAULT_KEYS = {
 
 def qt_key(value: str) -> int:
     value = value.strip().upper()
-    if value.startswith('QT:') and value[3:].isdigit() and 0<=int(value[3:])<=0x1ffffff:
+    if value.startswith('QT:') and value[3:].lstrip('-').isdigit() and -(1<<31)<=int(value[3:])<(1<<31):
         return int(value[3:])
     if value in QT_KEYS:
         return QT_KEYS[value]
@@ -70,6 +70,7 @@ def write_config(
     integer_scaling: bool = False,
     screen_layout: str = 'focus',
     pause_lost_focus: bool = True,
+    input_profile: dict | None = None,
 ) -> Path:
     if not 1 <= scale <= 16:
         raise ValueError("Die Auflösung muss zwischen 1× und 16× liegen.")
@@ -83,6 +84,9 @@ def write_config(
     save_directory.mkdir(parents=True, exist_ok=True)
     all_keys = {**DEFAULT_KEYS, **keys}
     values = {name: qt_key(value) for name, value in all_keys.items()}
+    from .controls import validated
+    profile=validated(input_profile or {})
+    values={**profile['Keyboard'],**values}
 
     # A complete, deterministic portable profile avoids changing the user's
     # normal melonDS configuration and behaves identically on Windows/macOS.
@@ -129,7 +133,7 @@ SaveFilePath = "{_toml_path(save_directory)}"
 SavestatePath = "{_toml_path(save_directory / 'states')}"
 CheatFilePath = ""
 EnableCheats = false
-JoystickID = 0
+JoystickID = {profile['JoystickID']}
 
 [Instance0.Audio]
 DSiVolumeSync = false
@@ -165,6 +169,11 @@ HK_FastForward = {values['HK_FastForward']}
 HK_FullscreenToggle = {values['HK_FullscreenToggle']}
 '''
     destination = portable / "melonDS.toml"
+    # Preserve every native hotkey/controller binding, including disabled (-1)
+    # and modifier/right-hand keys. The launcher exposes only a small subset.
+    config=config.split('[Instance0.Keyboard]')[0]+'[Instance0.Keyboard]\n'
+    config+=''.join(f'{name} = {value}\n' for name,value in values.items())
+    config+='\n[Instance0.Joystick]\n'+''.join(f'{name} = {value}\n' for name,value in profile['Joystick'].items())
     destination.write_text(config, encoding="utf-8")
     return destination
 
@@ -204,7 +213,7 @@ def read_runtime_settings(executable: Path) -> dict:
         if name in DEFAULT_KEYS:
             if value in reverse: keys[name]=reverse[value]
             elif 32<=value<=126: keys[name]=chr(value)
-            elif isinstance(value,int) and value>=0: keys[name]='QT:'+str(value)
+            elif type(value) is int and -(1<<31)<=value<(1<<31): keys[name]='QT:'+str(value)
     return {'scale':scale,'fps':fps,'volume':volume,'keys':keys,
             'pixel_filter':bool(window.get('ScreenFilter',False)),
             'integer_scaling':bool(window.get('IntegerScaling',False)),
