@@ -11,6 +11,7 @@ import stat
 import tempfile
 import urllib.request
 import zipfile
+from .sync import tls_context
 
 REPO = 'https://github.com/JohnLegendstyle/SoulLink'
 API = 'https://api.github.com/repos/JohnLegendstyle/SoulLink/releases/latest'
@@ -47,7 +48,7 @@ def release_info(data, current, label):
 
 def check(current):
     request = urllib.request.Request(API,headers={'Accept':'application/vnd.github+json','User-Agent':'SoulLink-Updater'})
-    with urllib.request.urlopen(request,timeout=20) as response:
+    with urllib.request.urlopen(request,timeout=20,context=tls_context()) as response:
         raw = response.read(1024*1024+1)
     if len(raw)>1024*1024: raise ValueError('Release-Antwort zu groß.')
     return release_info(json.loads(raw),current,platform_label())
@@ -103,7 +104,7 @@ def prepare(info, root: Path, progress=lambda value:None):
     try:
         digest=hashlib.sha256(); received=0
         request=urllib.request.Request(info['url'],headers={'User-Agent':'SoulLink-Updater'})
-        with urllib.request.urlopen(request,timeout=45) as response,archive.open('xb') as output:
+        with urllib.request.urlopen(request,timeout=45,context=tls_context()) as response,archive.open('xb') as output:
             if not response.url.startswith('https://'): raise ValueError('Unsichere Download-Verbindung.')
             while chunk:=response.read(1024*1024):
                 received+=len(chunk)
