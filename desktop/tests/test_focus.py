@@ -62,8 +62,8 @@ class FocusTests(unittest.TestCase):
 
     def test_live_battle_helper_is_read_only_and_fast(self):
         root=Path(__file__).resolve().parents[1]/'focus'
-        snapshot=(root/'FocusTeam.inc').read_text()
-        window=(root/'FocusWindow.inc').read_text()
+        snapshot=(root/'FocusTeam.inc').read_text(encoding='utf-8')
+        window=(root/'FocusWindow.inc').read_text(encoding='utf-8')
         self.assertIn('battleClock.elapsed()>=400',snapshot)
         self.assertIn('constexpr quint32 battleMons=0x2D40',snapshot)
         self.assertIn('QSaveFile battle(battlePath)',snapshot)
