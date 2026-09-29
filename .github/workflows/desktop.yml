@@ -53,6 +53,6 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'spielabend' }}
-          name: Soul Link – Anakin und Obi-Wan
+          name: Soul Link – Optimus und Bee
           body: 'ZIP vollständig entpacken, SoulLink starten, eigene deutsche SoulSilver-ROM auswählen. Emulator und Java sind enthalten. Hinweise in SPIELSTART.md beachten.'
           files: artifacts/**/*.zip
