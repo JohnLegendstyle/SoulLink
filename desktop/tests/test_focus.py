@@ -26,7 +26,16 @@ class FocusTests(unittest.TestCase):
             self.assertEqual(preferred_emulator(str(old),new),str(new))
             custom=root/'custom.exe';custom.touch()
             self.assertEqual(preferred_emulator(str(custom),new),str(custom))
+            (new.parent/'focus-version.txt').write_text('focus-test')
+            self.assertEqual(preferred_emulator(str(custom),new),str(new))
             self.assertEqual(preferred_emulator('',new),str(new))
+
+    def test_team_upload_has_fixed_clock_independent_of_save_mtime(self):
+        from soullink.sync import TEAM_REFRESH_SECONDS,team_refresh_due
+        self.assertEqual(TEAM_REFRESH_SECONDS,20)
+        self.assertTrue(team_refresh_due(100.0,None))
+        self.assertFalse(team_refresh_due(119.999,100.0))
+        self.assertTrue(team_refresh_due(120.0,100.0))
     def test_both_native_title_paths_use_jedi_display_names(self):
         root=Path(__file__).resolve().parents[1]/'focus'
         for name in ('FocusWindow.inc','apply_focus.py'):

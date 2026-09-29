@@ -12,6 +12,12 @@ from typing import Callable
 
 from .save_reader import read_save
 
+TEAM_REFRESH_SECONDS = 20
+
+
+def team_refresh_due(now: float, last_attempt: float | None) -> bool:
+    return last_attempt is None or now - last_attempt >= TEAM_REFRESH_SECONDS
+
 
 def tls_context() -> ssl.SSLContext:
     import certifi
@@ -48,9 +54,10 @@ class SyncWorker:
             if not endpoint.startswith('https://') and not endpoint.startswith('http://127.0.0.1:'):
                 raise ValueError('Die Verbindungsadresse muss HTTPS verwenden.')
             context = tls_context()
-            last_full_key = object()
+            last_team_attempt = None
             last_state = None
             last_live = False
+            waiting_for_live = bool(self.team)
             while not self.stop_event.is_set():
                 position=None
                 if self.position:
@@ -58,13 +65,11 @@ class SyncWorker:
                         from .live_position import read_position
                         position=read_position(self.position)
                     except (OSError,ValueError):pass
-                try:
-                    full_key=(self.save.stat().st_mtime_ns,self.team.stat().st_mtime_ns if self.team and self.team.is_file() else None)
-                except OSError:
-                    full_key=None
-                full=last_full_key!=full_key
+                full=team_refresh_due(time.monotonic(),last_team_attempt)
                 live=False;state=None
+                sent_full=False
                 if full:
+                    last_team_attempt=time.monotonic()
                     try:
                         state=read_save(self.save)
                     except (OSError,ValueError):
@@ -75,12 +80,22 @@ class SyncWorker:
                         try:
                             from .live_team import read_team
                             state=read_team(self.team,state);live=True
-                        except (OSError,ValueError):pass
-                    self.fainted.update(p.uid for p in state.party if p.hp == 0)
-                    payload={"roomId":access["roomId"],"sessionId":self.session,"sequence":self.sequence,
-                             "party":[p.api() for p in state.party],"owned":[p.api() for p in state.owned],
-                             "fainted":sorted(self.fainted),"teamSource":"live" if live else "save",
-                             "teamCapturedAt":int((self.team if live else self.save).stat().st_mtime*1000)}
+                            waiting_for_live=False
+                        except (OSError,ValueError):
+                            # When a live feed is expected, never overwrite it
+                            # with the last cartridge save. Keep the prior live
+                            # team visible and retry on the fixed clock.
+                            waiting_for_live=True
+                            state=None
+                    if state is not None:
+                        self.fainted.update(p.uid for p in state.party if p.hp == 0)
+                        payload={"roomId":access["roomId"],"sessionId":self.session,"sequence":self.sequence,
+                                 "party":[p.api() for p in state.party],"owned":[p.api() for p in state.owned],
+                                 "fainted":sorted(self.fainted),"teamSource":"live" if live else "save",
+                                 "teamCapturedAt":int((self.team if live else self.save).stat().st_mtime*1000)}
+                        sent_full=True
+                    else:
+                        payload={"roomId":access["roomId"],"heartbeat":True}
                 else:
                     payload={"roomId":access["roomId"],"heartbeat":True}
                 if position:payload['position']=position
@@ -95,9 +110,8 @@ class SyncWorker:
                     self.on_status('Verbindung unterbrochen. Neuer Versuch in wenigen Sekunden …')
                     self.stop_event.wait(5)
                     continue
-                if full:
+                if sent_full:
                     self.sequence += 1
-                    last_full_key=full_key
                     last_state=state
                     last_live=live
                 else:
@@ -108,7 +122,11 @@ class SyncWorker:
                 locked = [p.nickname or f'Pokémon #{p.species}' for p in state.party if p.uid in blocked] if state else []
                 notice = ' · GESPERRT: ' + ', '.join(locked) if locked else ''
                 location=' · Position live' if position else ''
-                self.on_status(f"{'Live-Team · alle 20 Sekunden' if live else 'Tracker verbunden'}{location} · {partner}{notice}")
+                tracker=('Live-Team · alle 20 Sekunden' if last_live and not waiting_for_live
+                         else 'Live-Team wartet auf den nächsten 20-Sekunden-Stand' if last_live
+                         else 'Live-Team wird vorbereitet · nicht der letzte Speicherstand' if self.team
+                         else 'Tracker verbunden')
+                self.on_status(f"{tracker}{location} · {partner}{notice}")
                 self.stop_event.wait(1)
         except (OSError, ValueError, KeyError, urllib.error.URLError) as error:
             self.on_status(f"Synchronisierung pausiert: {error}")

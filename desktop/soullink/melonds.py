@@ -243,9 +243,15 @@ def copy_emulator(source: Path, destination: Path) -> Path:
 
 
 def preferred_emulator(selected: str, bundled: Path) -> str:
-    """Portable updates must not keep launching an older bundled emulator."""
+    """Always use the bundled Focus build when it is available.
+
+    A stock melonDS executable cannot emit the read-only team snapshots used by
+    the 20-second tracker. Older settings were allowed to keep such a custom
+    executable, which silently reduced the website to the last .sav state.
+    """
     previous=Path(selected) if selected else None
     managed=previous and ((previous.parent/'focus-version.txt').is_file()
                          or previous.parent.name=='Emulator' and previous.name in ('melonDS.exe','melonDS.app'))
-    if bundled.exists() and (not previous or not previous.exists() or managed):return str(bundled)
+    focus=(bundled.parent/'focus-version.txt').is_file()
+    if bundled.exists() and (focus or not previous or not previous.exists() or managed):return str(bundled)
     return selected

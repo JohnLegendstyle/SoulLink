@@ -2,11 +2,11 @@
 
 Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, überprüfbaren Start-Spielständen und gemeinsamem Railway-Tracker.
 
-- **[Aktuelle stabile Version: 0.14.2](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.2)**
-- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.2/SoulLink-0.14.2-Windows-x64.zip)
-- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.2/SoulLink-0.14.2-macOS-arm64.zip)
+- **[Aktuelle stabile Version: 0.14.3](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.3)**
+- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.3/SoulLink-0.14.3-Windows-x64.zip)
+- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.3/SoulLink-0.14.3-macOS-arm64.zip)
 - [Versionsübersicht und Änderungsverlauf](CHANGELOG.md)
-- [Update 0.14.2: feste T-Namen-Paare](releases/v0.14.2.md) – T11 steht nur noch neben T11; übersprungene Gegenfänge werden automatisch als gescheitert ergänzt, Teamabgleich alle 20 Sekunden.
+- [Update 0.14.3: echter Live-Abgleich](releases/v0.14.3.md) – die App nutzt automatisch den integrierten Live-Emulator und sendet Team und Boxen unabhängig vom Speichern alle 20 Sekunden.
 - [Update 0.14.0: Live-Karte und Typenhilfe](releases/v0.14.0.md) – Anakin/Obi-Wan live auf der Karte, Typen/Schwächen/Stärken am Team und drei lokale Website-Ansichten.
 - [Update 0.13.0: Discord statt Bildübertragung](releases/v0.13.0.md) – kein integrierter Bild-Upload mehr, kompakte Teams und optionaler Discord-Platzhalter.
 - [Update 0.12.1: eigene Tasten behalten](releases/v0.12.1.md) – vollständige Tastatur-/Controllerprofile, inklusive FPS-Fix aus 0.12.0. Direkt von 0.11 aktualisierbar.
@@ -51,7 +51,7 @@ Version 0.5 adds password-protected website accounts (John/Eddie), one-time brow
 
 `railway/server.mjs`: Node 24 mit SQLite, Bearer-Rundenschlüsseln und persistentem Volume unter `/data`. Die statische React-Seite wird mit `node node_modules/vite/bin/vite.js build --config railway/vite.config.ts` gebaut. `DATA_DIR=/data`, `PUBLIC_DIR=/app/public` und `PORT` konfigurieren den Server. Bestehende interne Rollen John/Eddie und lokale Rundenkennungen Optimus/Bee bleiben aus Kompatibilitätsgründen erhalten; die sichtbaren Namen sind Anakin/Obi-Wan.
 
-Ab 0.9 liest die Desktop-App zusätzlich das aktuelle Team aus dem Emulator; ab 0.14.2 geschieht das fest alle 20 Sekunden. Ab 0.14 wird die aktuelle Kartenposition getrennt davon ungefähr jede Sekunde als winziger Datensatz übertragen; es werden keine Bilder oder Audiodaten gesendet. Boxen und vollständiger Spielstand werden weiterhin aus `.sav` gelesen; der Cloud-Spielstandabgleich benötigt Speichern im Spiel. Ab 0.10 werden außerdem Fangorte übertragen. Regeln und Grenzen stehen in SPIELSTART.md. Verbindungsdateien enthalten private Schlüssel und werden niemals in Releases veröffentlicht.
+Ab 0.9 liest die Desktop-App zusätzlich das aktuelle Team aus dem Emulator; ab 0.14.3 nutzt sie dafür automatisch den mitgelieferten Live-Emulator und sendet Team sowie Boxen fest alle 20 Sekunden. Ab 0.14 wird die aktuelle Kartenposition getrennt davon ungefähr jede Sekunde als winziger Datensatz übertragen; es werden keine Bilder oder Audiodaten gesendet. Der vollständige Cloud-Spielstandabgleich benötigt weiterhin Speichern im Spiel, die sichtbaren Team- und Fangdaten jedoch nicht. Ab 0.10 werden außerdem Fangorte übertragen. Regeln und Grenzen stehen in SPIELSTART.md. Verbindungsdateien enthalten private Schlüssel und werden niemals in Releases veröffentlicht.
 
 ## Lizenz
 

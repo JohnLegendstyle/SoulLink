@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.14.2 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.2)
+## [0.14.3 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.3)
+
+29.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Der Live-Tracker verwendet nun automatisch den mitgelieferten Soul-Link-Emulator. Eine früher ausgewählte normale melonDS-Datei kann den 20-Sekunden-Schnappschuss nicht liefern und wird deshalb beim Update nicht mehr weiterverwendet. Team und Boxen werden auf einem festen 20-Sekunden-Takt übertragen, unabhängig davon, ob sich die `.sav`-Datei geändert hat. Solange noch kein gültiger Live-Stand vorliegt, überschreibt die App die Website nicht mehr still mit dem letzten Speicherstand. Bestehende Spielstände, Runde und Tasten-/Controllerprofile bleiben erhalten. [Update-Schritte](releases/v0.14.3.md).
+
+## [0.14.2](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.2)
 
 27.09.2026 · Windows x64 und macOS Apple Silicon.
 
