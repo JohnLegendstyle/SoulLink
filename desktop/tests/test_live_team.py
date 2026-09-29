@@ -15,8 +15,8 @@ def pokemon_raw(size=236,flags=0,hp=19,pid=0x42):
     if size>136 and not flags&1:_crypt(raw,136,size,pid)
     return raw
 
-def snapshot(flags=0,hp=19,boxed=False):
-    region=bytearray(REGION_SIZE);region[0x64:0x74]=name_bytes('Anakin')
+def snapshot(flags=0,hp=19,boxed=False,trainer='Anakin'):
+    region=bytearray(REGION_SIZE);region[0x64:0x74]=name_bytes(trainer)
     struct.pack_into('<II',region,0x90,6,1)
     region[0x98:0x98+236]=pokemon_raw(flags=flags,hp=hp)
     headers=bytearray(42*16);offset=0
@@ -48,6 +48,19 @@ class LiveTeamTests(unittest.TestCase):
             with self.assertRaises(ValueError):parse_team(bytes(data),self.saved)
         with self.assertRaises(ValueError):parse_team(snapshot(hp=20),self.saved)
         with self.assertRaises(ValueError):parse_team(snapshot(flags=4),self.saved)
+    def test_legacy_and_jedi_names_are_the_same_player(self):
+        self.assertEqual(parse_team(snapshot(trainer='Optimus'),self.saved).party[0].species,63)
+        legacy=SaveState('Optimus',0,[],[])
+        self.assertEqual(parse_team(snapshot(trainer='Anakin'),legacy).party[0].species,63)
+        self.assertEqual(parse_team(snapshot(trainer='Bee'),SaveState('Obi-Wan',0,[],[])).party[0].species,63)
+    def test_one_incomplete_box_slot_does_not_hide_the_live_party(self):
+        data=bytearray(snapshot(boxed=True))
+        headers=8+REGION_SIZE
+        storage=struct.unpack_from('<I',data,headers+41*16+8)[0]
+        data[8+storage+20]^=1
+        state=parse_team(bytes(data),self.saved)
+        self.assertEqual([(p.species,p.level) for p in state.party],[(63,5)])
+        self.assertEqual([(p.species,p.level) for p in state.owned],[(63,5)])
     def test_stale_snapshot_never_overwrites_saved_team(self):
         with tempfile.TemporaryDirectory() as temp:
             path=Path(temp)/'test.team';path.write_bytes(snapshot())

@@ -2,8 +2,7 @@
 import struct
 import time
 from pathlib import Path
-from .save_reader import _pokemon,_crypt,SaveState
-from .identity import name_bytes
+from .save_reader import _pokemon,_crypt,_text,SaveState
 
 REGION_SIZE=0x23000
 
@@ -20,7 +19,10 @@ def parse_team(data:bytes, saved:SaveState):
     # The supported German HGSS layout is checked, never guessed from a PID.
     if entries[2][0]!=0x90 or entries[2][1]<8+6*236:
         raise ValueError('Unbekanntes Team-Layout.')
-    if region[0x64:0x74]!=name_bytes(saved.trainer) or region[0x7c]!=saved.gender:
+    live_trainer=_text(region,0x64,8)
+    identities=({'Optimus','Anakin'},{'Bee','Obi-Wan'})
+    same_player=live_trainer==saved.trainer or any(live_trainer in names and saved.trainer in names for names in identities)
+    if not same_player or region[0x7c]!=saved.gender:
         raise ValueError('Live-Team gehört nicht zu diesem Spieler.')
     maximum,count=struct.unpack_from('<II',region,0x90)
     if maximum!=6 or count>6:raise ValueError('Ungültige Teamgröße.')
@@ -52,12 +54,16 @@ def parse_team(data:bytes, saved:SaveState):
                 if len(raw)!=136:raise ValueError('Unvollständige Live-Boxdaten.')
                 if not any(raw) or raw==b'\xff'*136:continue
                 flags=struct.unpack_from('<H',raw,4)[0]
-                if flags&~3:raise ValueError('Box-Pokémon wird gerade verändert.')
+                # Box memory can briefly retain an incomplete source slot while
+                # a Pokémon is moved. One such slot must not discard the valid
+                # party and every other box; the next 20-second pass retries it.
+                if flags&~3:continue
                 if flags&2:_crypt(raw,8,136,struct.unpack_from('<H',raw,6)[0])
                 mon=_pokemon(bytes(raw),False)
-                if not mon:raise ValueError('Live-Boxdaten noch nicht vollständig lesbar.')
-                boxes.append(mon)
-    if len({p.uid for p in boxes})!=len(boxes):raise ValueError('Doppeltes Live-Box-Pokémon.')
+                if mon:boxes.append(mon)
+    # During an in-game box move, source and destination can temporarily hold
+    # the same Pokémon. Keep one checked copy and retry normally next cycle.
+    boxes=list({p.uid:p for p in boxes}.values())
     known={p.uid for p in party}
     owned=party+[p for p in boxes if p.uid not in known]
     known.update(p.uid for p in owned)

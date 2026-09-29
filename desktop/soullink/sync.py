@@ -58,6 +58,7 @@ class SyncWorker:
             last_state = None
             last_live = False
             waiting_for_live = bool(self.team)
+            live_problem = ''
             while not self.stop_event.is_set():
                 position=None
                 if self.position:
@@ -81,11 +82,13 @@ class SyncWorker:
                             from .live_team import read_team
                             state=read_team(self.team,state);live=True
                             waiting_for_live=False
-                        except (OSError,ValueError):
+                            live_problem=''
+                        except (OSError,ValueError) as error:
                             # When a live feed is expected, never overwrite it
                             # with the last cartridge save. Keep the prior live
                             # team visible and retry on the fixed clock.
                             waiting_for_live=True
+                            live_problem=str(error)
                             state=None
                     if state is not None:
                         self.fainted.update(p.uid for p in state.party if p.hp == 0)
@@ -123,6 +126,7 @@ class SyncWorker:
                 notice = ' · GESPERRT: ' + ', '.join(locked) if locked else ''
                 location=' · Position live' if position else ''
                 tracker=('Live-Team · alle 20 Sekunden' if last_live and not waiting_for_live
+                         else 'Live-Team wartet: '+live_problem if live_problem
                          else 'Live-Team wartet auf den nächsten 20-Sekunden-Stand' if last_live
                          else 'Live-Team wird vorbereitet · nicht der letzte Speicherstand' if self.team
                          else 'Tracker verbunden')

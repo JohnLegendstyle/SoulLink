@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.14.3 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.3)
+## [0.14.4 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.4)
+
+29.09.2026 · Windows x64 und macOS Apple Silicon.
+
+Die Live-Team-Prüfung akzeptiert nun sicher die zusammengehörenden Namen Optimus/Anakin und Bee/Obi-Wan. Ein einzelner vorübergehend unvollständiger Boxplatz verwirft nicht mehr den kompletten geprüften Teamstand; er wird beim nächsten 20-Sekunden-Lauf erneut gelesen. Falls ein anderer Prüfgrund verbleibt, zeigt die App ihn jetzt konkret an. [Update-Schritte](releases/v0.14.4.md).
+
+## [0.14.3](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.3)
 
 29.09.2026 · Windows x64 und macOS Apple Silicon.
 

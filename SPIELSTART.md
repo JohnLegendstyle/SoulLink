@@ -2,7 +2,7 @@
 
 ## Update 0.14: Live-Karte, Typenhilfe und Discord-Ansicht
 
-Die eingebaute Bildübertragung wurde entfernt. Für den echten, speicherunabhängigen 20-Sekunden-Teamabgleich aktualisieren beide in einer Spielpause auf **0.14.3**. Spielstände, Website-Runde und eigene Tastenprofile bleiben erhalten. Die Website lehnt alte Bild-Uploads ab. Teams, Fangkarte und Cloud-Spielstände bleiben aktiv. Oben wählt jeder Browser seine eigene Ansicht: **Karte mittig**, **Fangbuch groß** oder **Discord-Platz**. Kein eingebetteter Stream.
+Die eingebaute Bildübertragung wurde entfernt. Für den echten, speicherunabhängigen 20-Sekunden-Teamabgleich aktualisieren beide in einer Spielpause auf **0.14.4**. Spielstände, Website-Runde und eigene Tastenprofile bleiben erhalten. Die Website lehnt alte Bild-Uploads ab. Teams, Fangkarte und Cloud-Spielstände bleiben aktiv. Oben wählt jeder Browser seine eigene Ansicht: **Karte mittig**, **Fangbuch groß** oder **Discord-Platz**. Kein eingebetteter Stream.
 
 ## Update 0.12.1: eigene Tasten behalten
 
