@@ -2,10 +2,10 @@
 
 Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, überprüfbaren Start-Spielständen und gemeinsamem Railway-Tracker.
 
-- **[Aktuelle stabile Version: 0.14.4](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.4)**
-- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.4/SoulLink-0.14.4-Windows-x64.zip)
-- [macOS Apple Silicon herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.14.4/SoulLink-0.14.4-macOS-arm64.zip)
+- **[Aktuelle stabile Version: 0.15.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.0)**
+- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.15.0/SoulLink-0.15.0-Windows-x64.zip)
 - [Versionsübersicht und Änderungsverlauf](CHANGELOG.md)
+- [Update 0.15.0: Windows-Kampfhilfe, Starterwahl und Direkt-Update](releases/v0.15.0.md) – Live-Schwächen und Attackenwirkung im Emulator, drei Starter im Launcher, neue kleine Anakin-/Obi-Wan-Figuren und Update im bisherigen App-Ordner.
 - [Update 0.14.4: Live-Team-Prüfung repariert](releases/v0.14.4.md) – alte/neue Trainernamen und vorübergehend unvollständige Boxplätze blockieren nicht mehr das gesamte Live-Team.
 - [Update 0.14.0: Live-Karte und Typenhilfe](releases/v0.14.0.md) – Anakin/Obi-Wan live auf der Karte, Typen/Schwächen/Stärken am Team und drei lokale Website-Ansichten.
 - [Update 0.13.0: Discord statt Bildübertragung](releases/v0.13.0.md) – kein integrierter Bild-Upload mehr, kompakte Teams und optionaler Discord-Platzhalter.
@@ -16,7 +16,7 @@ Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, 
 - [Spielstart und Bedienung](SPIELSTART.md)
 - [Gemeinsamer Tracker](https://soullink-web-production.up.railway.app)
 
-Der Nutzer liefert seine eigene ROM. Dieses Repository und die Releases enthalten keine Nintendo-ROMs oder BIOS-Dumps. **Beim Update die bestehende Runde öffnen; keine Startspielstände über euren Fortschritt kopieren.** Der Downloadkanal `spielabend` wird fortlaufend ersetzt; nummerierte Releases sind die verlässliche Versionsablage. macOS-Pakete sind für M1 oder neuer, nicht für Intel-Macs.
+Der Nutzer liefert seine eigene ROM. Dieses Repository und die Releases enthalten keine Nintendo-ROMs oder BIOS-Dumps. **Beim Update die bestehende Runde öffnen; keine Startspielstände über euren Fortschritt kopieren.** Der Downloadkanal `spielabend` wird fortlaufend ersetzt; nummerierte Releases sind die verlässliche Versionsablage. Version 0.15.0 wird zunächst nur für Windows x64 ausgeliefert; die letzte macOS-Version bleibt 0.14.4.
 
 ## Desktop
 
@@ -33,7 +33,7 @@ pyinstaller --clean --noconfirm SoulLink.spec
 python package_release.py
 ```
 
-Die GitHub Action baut Windows x64 und macOS Apple Silicon auf eigenen Systemen und veröffentlicht ZIP-Pakete. Emulator, Java-Laufzeit, Lizenzen und getaggte Drittanbieter-Quelltexte liegen in jedem Paket. Der lokale Build ist nicht mit einem kommerziellen Signaturzertifikat signiert.
+Die GitHub Action baut aktuell Windows x64 und veröffentlicht ein ZIP-Paket. Emulator, Java-Laufzeit, Lizenzen und getaggte Drittanbieter-Quelltexte liegen im Paket. Der Build ist nicht mit einem kommerziellen Signaturzertifikat signiert.
 
 ## Tracker
 

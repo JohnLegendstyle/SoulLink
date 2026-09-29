@@ -98,4 +98,27 @@ class UpdaterTests(unittest.TestCase):
                 SoulLinkApp.activate_update(app)
                 start.assert_not_called();confirm.assert_not_called()
 
+    def test_windows_update_is_scheduled_outside_install_and_keeps_unknown_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);updates=root/'settings'/'Updates';source=updates/'v'/'SoulLink-Windows-x64'
+            install=root/'installed';source.mkdir(parents=True);install.mkdir()
+            app=source/'SoulLink.exe';app.write_bytes(b'new')
+            (install/'SoulLink.exe').write_bytes(b'old')
+            (install/'own-rom.nds').write_bytes(b'keep')
+            with patch.object(u.platform,'system',return_value='Windows'),patch.object(u.subprocess,'Popen') as start:
+                u.schedule_windows_update(app,install,updates,parent_pid=123)
+            command=start.call_args.args[0]
+            self.assertEqual(command[0],'powershell.exe')
+            self.assertIn(str(source.resolve()),command);self.assertIn(str(install.resolve()),command)
+            script=next(updates.glob('apply-*/apply-update.ps1')).read_text()
+            self.assertIn('Get-ChildItem -LiteralPath $Source',script)
+            self.assertNotIn('own-rom.nds',script)
+            self.assertEqual((install/'own-rom.nds').read_bytes(),b'keep')
+
+    def test_windows_update_rejects_overlap_and_missing_install(self):
+        with tempfile.TemporaryDirectory() as tmp,patch.object(u.platform,'system',return_value='Windows'):
+            root=Path(tmp);source=root/'SoulLink-Windows-x64';source.mkdir()
+            app=source/'SoulLink.exe';app.touch()
+            with self.assertRaises(ValueError):u.schedule_windows_update(app,source,root)
+
 if __name__=='__main__':unittest.main()

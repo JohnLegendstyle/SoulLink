@@ -19,6 +19,56 @@
 #include <QTimer>
 #include <QDateTime>
 #include <QFileInfo>
+#include <QFile>
+#include <QFrame>
+#include <QHash>
+#include <QJsonArray>
+#include <QSet>
+
+static QString focusTypeName(int type)
+{
+    static const char* names[]={"Normal","Kampf","Flug","Gift","Boden","Gestein","Käfer","Geist","Stahl","?","Feuer","Wasser","Pflanze","Elektro","Psycho","Eis","Drache","Unlicht"};
+    return type>=0&&type<18?QString::fromUtf8(names[type]):QString("?");
+}
+
+static int focusMoveType(const QString& type)
+{
+    static const QHash<QString,int> types={{"NORMAL",0},{"FIGHTING",1},{"FLYING",2},{"POISON",3},
+        {"GROUND",4},{"ROCK",5},{"BUG",6},{"GHOST",7},{"STEEL",8},{"FIRE",10},{"WATER",11},
+        {"GRASS",12},{"ELECTRIC",13},{"PSYCHIC",14},{"ICE",15},{"DRAGON",16},{"DARK",17}};
+    return types.value(type,-1);
+}
+
+static double focusTypeFactor(int attack,int defence)
+{
+    switch(attack){
+    case 0:if(defence==5||defence==8)return .5;if(defence==7)return 0;break;
+    case 1:if(defence==0||defence==5||defence==8||defence==15||defence==17)return 2;if(defence==2||defence==3||defence==6||defence==14)return .5;if(defence==7)return 0;break;
+    case 2:if(defence==1||defence==6||defence==12)return 2;if(defence==5||defence==8||defence==13)return .5;break;
+    case 3:if(defence==12)return 2;if(defence==3||defence==4||defence==5||defence==7)return .5;if(defence==8)return 0;break;
+    case 4:if(defence==3||defence==5||defence==8||defence==10||defence==13)return 2;if(defence==6||defence==12)return .5;if(defence==2)return 0;break;
+    case 5:if(defence==2||defence==6||defence==10||defence==15)return 2;if(defence==1||defence==4||defence==8)return .5;break;
+    case 6:if(defence==12||defence==14||defence==17)return 2;if(defence==1||defence==2||defence==3||defence==7||defence==8||defence==10)return .5;break;
+    case 7:if(defence==7||defence==14)return 2;if(defence==8||defence==17)return .5;if(defence==0)return 0;break;
+    case 8:if(defence==5||defence==15)return 2;if(defence==8||defence==10||defence==11||defence==13)return .5;break;
+    case 10:if(defence==6||defence==8||defence==12||defence==15)return 2;if(defence==5||defence==10||defence==11||defence==16)return .5;break;
+    case 11:if(defence==4||defence==5||defence==10)return 2;if(defence==11||defence==12||defence==16)return .5;break;
+    case 12:if(defence==4||defence==5||defence==11)return 2;if(defence==2||defence==3||defence==6||defence==8||defence==10||defence==12||defence==16)return .5;break;
+    case 13:if(defence==2||defence==11)return 2;if(defence==12||defence==13||defence==16)return .5;if(defence==4)return 0;break;
+    case 14:if(defence==1||defence==3)return 2;if(defence==8||defence==14)return .5;if(defence==17)return 0;break;
+    case 15:if(defence==2||defence==4||defence==12||defence==16)return 2;if(defence==8||defence==10||defence==11||defence==15)return .5;break;
+    case 16:if(defence==16)return 2;if(defence==8)return .5;break;
+    case 17:if(defence==7||defence==14)return 2;if(defence==1||defence==8||defence==17)return .5;break;
+    }
+    return 1;
+}
+
+static double focusEffectiveness(int attack,const QJsonArray& types)
+{
+    double value=1;QSet<int> seen;
+    for(const auto item:types){const int defence=item.toInt(-1);if(defence>=0&&!seen.contains(defence)){seen.insert(defence);value*=focusTypeFactor(attack,defence);}}
+    return value;
+}
 
 static const char* focusStyle = R"QSS(
 QMainWindow, QDialog, QMenu, QWidget#focusPopup { background: #101214; color: #eceff1; }
@@ -28,6 +78,8 @@ QLabel { background: transparent; }
 QLabel#focusBrand { font-size: 22px; font-weight: 700; padding-right: 22px; }
 QLabel#focusStatus, QLabel#focusHint { color: #969b9f; font-size: 12px; }
 QFrame#focusPill { background: #191c1f; border: 1px solid #34383c; border-radius: 24px; }
+QFrame#focusBattle { background: rgba(16,18,20,238); border: 1px solid #4b4433; border-radius: 14px; }
+QLabel#focusBattleTitle { color: #efc572; font-size: 11px; font-weight: 700; }
 QPushButton, QToolButton { background: #1b1e21; border: 1px solid #353a3e; border-radius: 9px; padding: 10px 18px; }
 QPushButton:hover, QToolButton:hover { background: #2b2c29; border-color: #bb964c; }
 QPushButton:pressed, QToolButton:pressed { background: #373021; }
@@ -115,6 +167,65 @@ void MainWindow::initFocus()
     if(!website.isEmpty()) {
         auto* web=button("Website ↗",header);header->addWidget(web);
         connect(web,&QPushButton::clicked,this,[website]{QDesktopServices::openUrl(QUrl(website));});
+    }
+    const QString battlePath=qEnvironmentVariable("SOULLINK_BATTLE");
+    const QString battleDataPath=qEnvironmentVariable("SOULLINK_BATTLE_DATA");
+    if(!battlePath.isEmpty()&&centralWidget()){
+        auto* battleCard=new QFrame(centralWidget());battleCard->setObjectName("focusBattle");battleCard->setFixedWidth(330);
+        battleCard->setAttribute(Qt::WA_TransparentForMouseEvents);battleCard->setMinimumHeight(88);
+        auto* battleLayout=new QVBoxLayout(battleCard);battleLayout->setContentsMargins(16,14,16,14);battleLayout->setSpacing(7);
+        auto* battleHeading=new QLabel("KAMPFHILFE · LIVE",battleCard);battleHeading->setObjectName("focusBattleTitle");battleLayout->addWidget(battleHeading);
+        auto* enemyLabel=new QLabel("Warte auf einen Kampf …",battleCard);enemyLabel->setStyleSheet("font-size:16px;font-weight:650;");battleLayout->addWidget(enemyLabel);
+        auto* weakLabel=new QLabel("Gegnerschwächen erscheinen automatisch.",battleCard);weakLabel->setObjectName("focusHint");weakLabel->setWordWrap(true);battleLayout->addWidget(weakLabel);
+        auto* movesHeading=new QLabel("DEINE ATTACKEN",battleCard);movesHeading->setObjectName("focusBattleTitle");movesHeading->hide();battleLayout->addWidget(movesHeading);
+        QList<QLabel*> moveLabels;
+        for(int i=0;i<4;i++){auto* label=new QLabel(battleCard);label->setWordWrap(true);label->hide();battleLayout->addWidget(label);moveLabels.append(label);}
+        QJsonObject moveData;
+        QFile metadata(battleDataPath);
+        if(metadata.open(QIODevice::ReadOnly))moveData=QJsonDocument::fromJson(metadata.readAll()).object().value("moves").toObject();
+        auto* battleTimer=new QTimer(this);
+        connect(battleTimer,&QTimer::timeout,this,[battleCard,enemyLabel,weakLabel,movesHeading,moveLabels,moveData,battlePath]{
+            auto place=[battleCard]{
+                auto* parent=battleCard->parentWidget();if(!parent)return;
+                battleCard->adjustSize();
+                battleCard->move(qMax(12,parent->width()-battleCard->width()-14),qMax(12,parent->height()-battleCard->height()-14));battleCard->raise();
+            };
+            QFile file(battlePath);
+            if(!file.open(QIODevice::ReadOnly)){place();return;}
+            const QJsonObject state=QJsonDocument::fromJson(file.readAll()).object();
+            if(!state.value("active").toBool()){
+                enemyLabel->setText("Warte auf einen Kampf …");weakLabel->setText("Gegnerschwächen erscheinen automatisch.");
+                movesHeading->hide();for(auto* label:moveLabels)label->hide();place();return;
+            }
+            const auto enemy=state.value("enemy").toObject(),player=state.value("player").toObject();
+            const auto enemyTypes=enemy.value("types").toArray();
+            QStringList typeLabels;QSet<int> uniqueTypes;
+            for(const auto value:enemyTypes){const int type=value.toInt(-1);if(type>=0&&!uniqueTypes.contains(type)){uniqueTypes.insert(type);typeLabels<<focusTypeName(type);}}
+            enemyLabel->setText(QString("Gegner · Lv. %1 · %2").arg(enemy.value("level").toInt()).arg(typeLabels.join(" / ")));
+            QStringList weaknesses;
+            for(int type=0;type<18;type++)if(type!=9){const double factor=focusEffectiveness(type,enemyTypes);if(factor>1)weaknesses<<focusTypeName(type)+(factor>=4?" ×4":" ×2");}
+            weakLabel->setText("Schwach gegen: "+(weaknesses.isEmpty()?QString("keine Typschwäche"):weaknesses.join(" · ")));
+            movesHeading->show();const auto moves=player.value("moves").toArray();
+            for(int i=0;i<moveLabels.size();i++){
+                const int id=i<moves.size()?moves[i].toInt():0;
+                if(!id){moveLabels[i]->hide();continue;}
+                const auto info=moveData.value(QString::number(id)).toObject();
+                const QString name=info.value("name").toString(QString("Attacke #%1").arg(id)).toHtmlEscaped();
+                const int type=focusMoveType(info.value("type").toString());
+                const bool statusMove=info.value("category").toString()=="STATUS";
+                const double factor=type<0?1:focusEffectiveness(type,enemyTypes);
+                QString verdict,color;
+                if(statusMove){verdict="Statusattacke";color="#9ca2a7";}
+                else if(factor==0){verdict="Keine Wirkung";color="#dc8686";}
+                else if(factor<1){verdict="Nicht effektiv";color="#dc9a76";}
+                else if(factor>1){verdict=factor>=4?"Sehr effektiv · ×4":"Sehr effektiv";color="#8ed19a";}
+                else{verdict="Effektiv";color="#d8dce0";}
+                moveLabels[i]->setText(QString("<b>%1</b> <span style='color:#9ca2a7'>%2</span><br><span style='color:%3'>%4</span>")
+                    .arg(name,focusTypeName(type),color,verdict));moveLabels[i]->show();
+            }
+            place();
+        });
+        battleTimer->start(400);battleCard->show();
     }
     auto* streamBar=new QToolBar(this);streamBar->setMovable(false);streamBar->setFloatable(false);
     addToolBar(Qt::BottomToolBarArea,streamBar);

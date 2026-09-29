@@ -10,13 +10,15 @@ class FocusTests(unittest.TestCase):
         from unittest.mock import patch
         from soullink.melonds import launch
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp);rom=root/'game.nds';rom.touch();request=root/'request.json'
+            root=Path(temp);rom=root/'game.nds';rom.touch();request=root/'request.json';battle_data=root/'game.soullink.json'
             with patch.dict(os.environ,{'SOULLINK_MIRROR':'old-enabled.jpg'}),patch('soullink.melonds.subprocess.Popen') as start:
-                launch(root/'melonDS.exe',rom,request=request,mirror=root/'legacy.jpg')
+                launch(root/'melonDS.exe',rom,request=request,mirror=root/'legacy.jpg',battle_data=battle_data)
             environment=start.call_args.kwargs['env']
             self.assertNotIn('SOULLINK_MIRROR',environment)
             self.assertEqual(environment['SOULLINK_TEAM'],str(request.with_suffix('.team')))
             self.assertEqual(environment['SOULLINK_POSITION'],str(request.with_suffix('.position')))
+            self.assertEqual(environment['SOULLINK_BATTLE'],str(request.with_suffix('.battle')))
+            self.assertEqual(environment['SOULLINK_BATTLE_DATA'],str(battle_data))
 
     def test_portable_update_uses_new_bundled_emulator(self):
         from soullink.melonds import preferred_emulator
@@ -57,6 +59,18 @@ class FocusTests(unittest.TestCase):
         self.assertIn('teamClock.elapsed()>=20000',source)
         self.assertNotIn('teamClock.elapsed()>=25000',source)
         self.assertIn('positionClock.elapsed()>=1000',source)
+
+    def test_live_battle_helper_is_read_only_and_fast(self):
+        root=Path(__file__).resolve().parents[1]/'focus'
+        snapshot=(root/'FocusTeam.inc').read_text()
+        window=(root/'FocusWindow.inc').read_text()
+        self.assertIn('battleClock.elapsed()>=400',snapshot)
+        self.assertIn('constexpr quint32 battleMons=0x2D40',snapshot)
+        self.assertIn('QSaveFile battle(battlePath)',snapshot)
+        self.assertNotIn('->SaveState',snapshot)
+        self.assertIn('KAMPFHILFE · LIVE',window)
+        self.assertIn('Schwach gegen:',window)
+        self.assertIn('Sehr effektiv',window)
     def test_graphics_settings_roundtrip(self):
         with tempfile.TemporaryDirectory() as temp:
             exe=Path(temp)/'melonDS.exe'

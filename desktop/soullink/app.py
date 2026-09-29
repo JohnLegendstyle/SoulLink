@@ -18,6 +18,7 @@ from .randomizer import PlayerPack, create_round, runtime_root, load_round, inst
 from .sync import SyncWorker
 from .online import WEBSITE, MirrorWorker, pairing, browser_url
 from .cloud import CloudSession, CloudConflict
+from .save_reader import read_save
 
 
 COLORS = {
@@ -71,6 +72,7 @@ class SoulLinkApp(tk.Tk):
         if previous:
             try:
                 self.packs = {p.player:p for p in load_round(Path(str(previous)))}
+                self._refresh_player_cards()
                 self.status_var.set('Letzte Runde geladen. Ihr könnt weiterspielen.')
             except (OSError, ValueError, KeyError):
                 self.status_var.set('Letzte Runde nicht gefunden. Bitte vorhandene Runde öffnen.')
@@ -161,7 +163,7 @@ class SoulLinkApp(tk.Tk):
         top = ttk.Frame(self, padding=(30, 24, 30, 12))
         top.pack(fill="x")
         ttk.Label(top, text="SOUL LINK  /  FOCUS", style="Title.TLabel").pack(anchor="w")
-        ttk.Label(top, text="Dein Spiel im Mittelpunkt. Anakin × Obi-Wan · Windows + macOS", style="Sub.TLabel").pack(anchor="w", pady=(3, 0))
+        ttk.Label(top, text="Dein Spiel im Mittelpunkt. Anakin × Obi-Wan · Windows", style="Sub.TLabel").pack(anchor="w", pady=(3, 0))
         self.tabs = ttk.Notebook(self)
         self.tabs.pack(fill="both", expand=True, padx=30, pady=(4, 22))
         self.round_tab = ttk.Frame(self.tabs, padding=22, style="Panel.TFrame")
@@ -177,12 +179,12 @@ class SoulLinkApp(tk.Tk):
         self.tabs.add(self.update_tab,text='Updates')
         self.update_status = tk.StringVar(value=f'Installiert: {__version__} · Update-Prüfung wird vorbereitet.')
         ttk.Label(self.update_tab,textvariable=self.update_status,style='Panel.TLabel',wraplength=780).pack(anchor='w',pady=12)
-        ttk.Label(self.update_tab,text='Neue App separat installieren. Spielstände, Runden und alte App bleiben erhalten.\nWechsel erst nach dem Speichern, Schließen des Spiels und Cloud-Abgleich.\nJedi-Grafiken werden nicht ungefragt auf eure ROM angewendet.',style='Panel.TLabel',wraplength=780).pack(anchor='w',pady=8)
+        ttk.Label(self.update_tab,text='Windows ersetzt die App nach dem Schließen automatisch am bisherigen Ort.\nSpielstände, Runden, Tastenprofile und eigene Dateien bleiben erhalten; ersetzte Programmteile werden gesichert.\nWechsel erst nach dem Speichern, Schließen des Spiels und Cloud-Abgleich.',style='Panel.TLabel',wraplength=780).pack(anchor='w',pady=8)
         row=ttk.Frame(self.update_tab,style='Panel.TFrame');row.pack(fill='x',pady=12)
         ttk.Button(row,text='Nach Updates suchen',command=self.check_updates).pack(side='left',padx=4)
         self.update_download=ttk.Button(row,text='Update herunterladen',command=self.download_update,state='disabled')
         self.update_download.pack(side='left',padx=4)
-        self.update_start=ttk.Button(row,text='Zur neuen Version wechseln',command=self.activate_update,state='disabled')
+        self.update_start=ttk.Button(row,text='Update installieren & neu starten',command=self.activate_update,state='disabled')
         self.update_start.pack(side='left',padx=4)
         self.update_notes=tk.Text(self.update_tab,wrap='word',height=18,bg=COLORS['panel2'],fg=COLORS['text'],relief='flat')
         self.update_notes.pack(fill='both',expand=True);self.update_notes.configure(state='disabled')
@@ -201,7 +203,7 @@ class SoulLinkApp(tk.Tk):
     def download_update(self):
         if self.update_busy or not self.update_info: return
         info=dict(self.update_info)
-        if not messagebox.askyesno('Update herunterladen',f"Version {info['version']} herunterladen ({info['size']/1024/1024:.0f} MB)?\n\nDie neue App wird separat abgelegt. Eure Runde und alte App werden nicht überschrieben."): return
+        if not messagebox.askyesno('Update herunterladen',f"Version {info['version']} herunterladen ({info['size']/1024/1024:.0f} MB)?\n\nNach der Prüfung kann Windows die App automatisch am bisherigen Ort aktualisieren. Eure Spielstände und Einstellungen bleiben erhalten."): return
         self.update_busy=True;self.update_download.state(['disabled'])
         self.update_start.state(['disabled']);self.update_ready=None
         def work():
@@ -217,14 +219,16 @@ class SoulLinkApp(tk.Tk):
         if self.cloud_busy(): return
         if self.creating or self.pairing_active:
             messagebox.showinfo('Bitte warten','Rundenbearbeitung oder Website-Verbindung noch nicht abgeschlossen.');return
-        if not messagebox.askyesno('Zur neuen App wechseln','Spiel gespeichert und Cloud-Abgleich abgeschlossen?\n\nDie neue Version wird gestartet und dieser Launcher geschlossen. Die alte App bleibt als Rückfalloption erhalten.'): return
+        if platform.system()!='Windows':
+            messagebox.showinfo('Windows-Update','Das automatische Ersetzen ist in dieser Ausbaustufe nur für Windows verfügbar.');return
+        if not messagebox.askyesno('Update jetzt installieren','Spiel gespeichert und Cloud-Abgleich abgeschlossen?\n\nSoul Link wird geschlossen, am bisherigen Ort aktualisiert und automatisch neu gestartet. Eine Rückfallkopie wird angelegt.'): return
         try:
             self.persist_controls(self.player_var.get())
             self._save()
             app=Path(self.update_ready)
             if not app.resolve().is_relative_to((config_root()/'Updates').resolve()): raise ValueError('Ungültiger Update-Pfad.')
-            if platform.system()=='Darwin': subprocess.run(['open','-n',str(app)],check=True,timeout=20)
-            else: subprocess.Popen([str(app)],cwd=app.parent)
+            from .updater import schedule_windows_update
+            schedule_windows_update(app,install_root(),config_root()/'Updates')
             self.stop_sync();self.pair_stop.set();self.destroy()
         except Exception as error:
             messagebox.showerror('Update konnte nicht starten',str(error)+'\nDie bisherige App und eure Daten bleiben erhalten.')
@@ -245,6 +249,8 @@ class SoulLinkApp(tk.Tk):
         self.adventure_var = tk.BooleanVar(value=bool(self.settings['adventure']))
         self.status_var = tk.StringVar(value="Bereit für eine neue Runde.")
         self.player_cards=[]
+        self.starter_frames={}
+        self.starter_vars={}
         for column,(name,character) in enumerate((('Optimus','JOHN · ANAKIN SKYWALKER'),('Bee','EDDIE · OBI-WAN KENOBI'))):
             card=ttk.Frame(tab,padding=22,style='Panel.TFrame')
             self.player_cards.append(card)
@@ -252,7 +258,10 @@ class SoulLinkApp(tk.Tk):
             ttk.Label(card,text=character,style='Panel.TLabel',foreground=COLORS['gold'],font=('Arial',10,'bold')).pack(anchor='w')
             display='Anakin' if name=='Optimus' else 'Obi-Wan'
             ttk.Label(card,text=display,style='Panel.TLabel',font=('Arial',28,'bold')).pack(anchor='w',pady=(8,16))
+            starter_frame=ttk.Frame(card,style='Panel.TFrame');starter_frame.pack(fill='x',pady=(0,14))
+            self.starter_frames[name]=starter_frame
             ttk.Button(card,text=display+' starten',style='Primary.TButton',command=lambda p=name:self.start_player(p)).pack(fill='x')
+        self._refresh_player_cards()
         ttk.Label(tab,textvariable=self.status_var,style='Panel.TLabel',foreground=COLORS['green'],wraplength=760).grid(row=3,column=0,columnspan=2,sticky='w',pady=(4,16))
         self.cloud_status = tk.StringVar(value='Cloud-Spielstand: Website verbinden, dann vor jedem Spielstart automatisch abgleichen.')
         ttk.Label(tab,textvariable=self.cloud_status,style='Panel.TLabel',foreground=COLORS['gold'],wraplength=760).grid(row=6,column=0,columnspan=2,sticky='w',pady=(10,0))
@@ -283,6 +292,43 @@ class SoulLinkApp(tk.Tk):
     def show_setup(self) -> None:
         for card in self.player_cards: card.grid_remove()
         self.setup_panel.grid()
+
+    def _refresh_player_cards(self) -> None:
+        if not hasattr(self,'starter_frames'):return
+        for player,frame in self.starter_frames.items():
+            for child in frame.winfo_children():child.destroy()
+            pack=self.packs.get(player)
+            if not pack:
+                ttk.Label(frame,text='Noch keine Runde geladen',style='Panel.TLabel',foreground=COLORS['muted']).pack(anchor='w')
+                continue
+            try:started=bool(pack.save and read_save(pack.save).owned)
+            except (OSError,ValueError):started=False
+            ttk.Label(frame,text='DEINE 3 RANDOM-STARTER',style='Panel.TLabel',foreground=COLORS['gold'],font=('Arial',9,'bold')).pack(anchor='w')
+            selected=pack.selected_starter if pack.selected_starter is not None else -1
+            var=tk.IntVar(value=selected);self.starter_vars[player]=var
+            for index,starter in enumerate(pack.starters):
+                label=f"#{int(starter['species']):03d}  {starter['name']}"
+                ttk.Radiobutton(frame,text=label,variable=var,value=index).pack(anchor='w',pady=2)
+            if started:
+                ttk.Label(frame,text='Runde läuft · Auswahl ist geschützt',style='Panel.TLabel',foreground=COLORS['muted']).pack(anchor='w',pady=(5,0))
+            else:
+                ttk.Button(frame,text='Auswählen · im Spiel T1 nennen',command=lambda p=player:self.apply_starter_choice(p)).pack(fill='x',pady=(7,0))
+
+    def apply_starter_choice(self,player):
+        if self.creating:return
+        pack=self.packs.get(player)
+        selected=self.starter_vars.get(player)
+        index=selected.get() if selected is not None else -1
+        if not pack or index<0:
+            messagebox.showinfo('Starter auswählen','Bitte zuerst eines der drei Pokémon markieren.');return
+        manifest=Path(str(self.settings.get('manifest','')))
+        self.creating=True;self.create_button.state(['disabled']);self.status_var.set('Starterwahl wird sicher in der ROM festgelegt …')
+        def work():
+            try:
+                from .randomizer import choose_starter
+                self.events.put(('starter-selected',choose_starter(pack,index,manifest)))
+            except Exception as error:self.events.put(('error',str(error)))
+        threading.Thread(target=work,daemon=True).start()
 
     def _settings_ui(self) -> None:
         tab = self.settings_tab
@@ -524,6 +570,10 @@ class SoulLinkApp(tk.Tk):
                 raise RuntimeError('Bitte das andere Spielfenster vor dem Spielerwechsel schließen.')
             if not pack:
                 raise RuntimeError("Bitte zuerst eine neue randomisierte Runde erstellen.")
+            try:started=bool(pack.save and read_save(pack.save).owned)
+            except (OSError,ValueError):started=False
+            if not started and pack.selected_starter is None:
+                raise RuntimeError('Bitte im Launcher zuerst einen der drei Starter auswählen und als T1 festlegen.')
             input_profile=self.persist_controls(player)
             self._save()
             access=self.online_access()
@@ -554,8 +604,10 @@ class SoulLinkApp(tk.Tk):
             request.parent.mkdir(parents=True,exist_ok=True)
             self.stop_sync()
             mirror=None
+            from .randomizer import ensure_battle_metadata
+            battle_data=ensure_battle_metadata(pack.rom)
             self.processes[player] = launch(executable, pack.rom, fullscreen=bool(self.fullscreen_var.get()),player=player,request=request,
-                                           mirror=mirror,website=browser_url(access) if access else '')
+                                           mirror=mirror,website=browser_url(access) if access else '',battle_data=battle_data)
             self.runtime[player]=(executable,request)
             self.save_var.set(str(pack.save))
             self._save()
@@ -629,7 +681,7 @@ class SoulLinkApp(tk.Tk):
                 if kind=='update-progress': self.update_status.set(f'Update herunterladen: {value}% · Danach Prüfsumme und Paket prüfen …')
                 elif kind=='update-ready':
                     self.update_busy=False;self.update_ready=value
-                    self.update_status.set('Update geprüft und bereit. Nach Spielende zur neuen Version wechseln.\nNeue App: '+str(value))
+                    self.update_status.set('Update geprüft und bereit. Nach Spielende automatisch am bisherigen Ort installieren.')
                     self.update_start.state(['!disabled'])
                 elif kind=='update-error':
                     self.update_busy=False;self.update_status.set('Update nicht verfügbar: '+value+' · Eure App bleibt unverändert.')
@@ -668,7 +720,7 @@ class SoulLinkApp(tk.Tk):
                     self.cloud_status.set('Nicht in der Cloud gesichert · lokaler Stand bleibt erhalten. Erneut abgleichen!')
                     messagebox.showerror('Cloud-Spielstand',str(value)+'\n\nVor dem Gerätewechsel „Cloud jetzt abgleichen“ erneut versuchen.')
                 else: self.cloud_status.set('Abgleich abgebrochen · beide Spielstände unverändert')
-            if kind in ('round','skins','error'):
+            if kind in ('round','skins','starter-selected','error'):
                 self.creating = False
                 self.create_button.state(['!disabled'])
             if kind == 'round':
@@ -678,7 +730,12 @@ class SoulLinkApp(tk.Tk):
                 self.stop_sync()
                 self.connection_var.set('')
                 self._save()
-                self.status_var.set('Fertig! Anakin und Obi-Wan stehen vor der Starter-Auswahl.\n' + directory.name)
+                self._refresh_player_cards()
+                self.status_var.set('Fertig! Wählt jetzt je Spieler einen der drei Starter als T1.\n' + directory.name)
+            elif kind == 'starter-selected':
+                self.packs[value.player]=value;self._refresh_player_cards()
+                chosen=value.starters[value.selected_starter]['name']
+                self.status_var.set(f'{chosen} ist fest als T1 ausgewählt. Im Spiel bitte nur noch den Pokéball und den Namen T1 bestätigen.')
             elif kind == 'skins':
                 self.status_var.set('Figuren aktualisiert: Anakin × Obi-Wan mit Lichtschwertern. Euer Spielstand bleibt erhalten.')
             elif kind == 'error':
@@ -713,6 +770,7 @@ class SoulLinkApp(tk.Tk):
             self.stop_sync()
             self.connection_var.set('')
             self._save()
+            self._refresh_player_cards()
             self.status_var.set('Runde geladen. Ihr könnt weiterspielen.')
         except (OSError,ValueError,KeyError,TypeError) as error:
             messagebox.showerror('Runde öffnen',str(error))

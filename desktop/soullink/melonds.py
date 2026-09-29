@@ -182,7 +182,7 @@ def _toml_path(path: Path) -> str:
     return str(path.resolve()).replace("\\", "/").replace('"', '\\"')
 
 
-def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str = 'Optimus', request: Path | None = None, mirror: Path | None = None, website: str = '') -> subprocess.Popen:
+def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str = 'Optimus', request: Path | None = None, mirror: Path | None = None, website: str = '', battle_data: Path | None = None) -> subprocess.Popen:
     if not rom.is_file():
         raise FileNotFoundError("Die ausgewählte ROM wurde nicht gefunden.")
     command = [str(executable)]
@@ -195,6 +195,8 @@ def launch(executable: Path, rom: Path, *, fullscreen: bool = True, player: str 
     if request is not None: env['SOULLINK_REQUEST']=str(request)
     if request is not None: env['SOULLINK_TEAM']=str(request.with_suffix('.team'))
     if request is not None: env['SOULLINK_POSITION']=str(request.with_suffix('.position'))
+    if request is not None: env['SOULLINK_BATTLE']=str(request.with_suffix('.battle'))
+    if battle_data is not None: env['SOULLINK_BATTLE_DATA']=str(battle_data)
     # Video is retired, including inherited or legacy caller configuration.
     if website: env['SOULLINK_WEBSITE']=website
     return subprocess.Popen(command, cwd=str(executable.parent),env=env)

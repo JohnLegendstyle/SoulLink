@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.14.4 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.4)
+## [0.15.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.0)
+
+30.09.2026 · zunächst Windows x64.
+
+Live-Kampfhilfe im Focus-Emulator mit Gegnertypen, Schwächen und der aktuellen Typenwirkung aller eigenen Attacken. Die drei randomisierten Starter erscheinen pro Spieler im Launcher und können dort vor Spielstart festgelegt werden. Überarbeitete kleine Anakin-/Obi-Wan-Lauffiguren tragen ihre Lichtschwerter in allen Richtungen. Der Windows-Updater ersetzt die App nach Spielende am bisherigen Ort, während Runden, Spielstände und Tastenprofile erhalten bleiben. Der geprüfte Startstand bleibt vor der Starter-Auswahl; Pokéball und Name `T1` werden im Spiel bestätigt. [Update-Schritte und Grenzen](releases/v0.15.0.md).
+
+## [0.14.4](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.14.4)
 
 29.09.2026 · Windows x64 und macOS Apple Silicon.
 

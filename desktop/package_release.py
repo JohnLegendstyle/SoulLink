@@ -10,6 +10,9 @@ from soullink import __version__
 root = Path(__file__).resolve().parent
 subprocess.run([sys.executable,'-m','unittest','discover','-s','tests','-v'],cwd=root,check=True)
 windows = platform.system() == 'Windows'
+if not windows:
+    print(f'SoulLink {__version__} is a Windows-only release; macOS validation completed without packaging.')
+    raise SystemExit(0)
 label = 'Windows-x64' if windows else 'macOS-' + platform.machine()
 release = root / 'release'
 release.mkdir(exist_ok=True)

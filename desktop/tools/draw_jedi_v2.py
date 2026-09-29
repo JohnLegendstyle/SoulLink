@@ -5,6 +5,7 @@ costumes and silhouettes. Plo and Yoda retain the exact approved front pixels.
 No downloaded artwork, image API or ROM is used by this development tool.
 """
 import json
+import sys
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from draw_jedi import ROSTER, slug, shade, encode
@@ -266,6 +267,7 @@ def overworld(c,direction,phase):
     im=Image.new('P',(32,32));set_colors(im,pal);d=ImageDraw.Draw(im)
     def p(color,points):d.polygon(points,fill=lut[color])
     def r(color,box):d.rectangle(box,fill=lut[color])
+    def l(color,*xy):d.line(list(zip(xy[::2],xy[1::2])),fill=lut[color])
     side=direction in (2,3);back=direction==0;short=c[5] in ('yoda','piell') or 'young' in c[7]
     step=1 if phase==1 else -1 if phase==3 else 0
     left,right=(12,20) if side else (10,22)
@@ -301,6 +303,43 @@ def overworld(c,direction,phase):
         hd.rectangle((6,6,10,11),fill=skin);hd.point((2,8),fill=lut[12])
     mask=Image.new('L',head.size);mask.putdata([255 if v else 0 for v in head.getdata()])
     im.paste(head,(16-width//2,9 if short else 2),mask)
+    # Player characters use dedicated native 32 px faces from the approved
+    # John/Eddie sheet. This avoids the generic battle-head downscale that
+    # made both overworld figures look alike.
+    if c[0] in ('Anakin Skywalker','Obi-Wan Kenobi'):
+        d.rectangle((7,1,24,16),fill=0)
+        obi=c[0]=='Obi-Wan Kenobi';hair=9;hair_dark=10;hair_light=11
+        skin=7;skin_shadow=6;skin_light=8;ink=1
+        if back:
+            p(ink,[(9,6),(11,2),(16,1),(21,3),(23,7),(22,13),(19,16),(12,15),(9,12)])
+            p(hair,[(10,7),(12,3),(16,2),(20,4),(22,7),(21,12),(18,15),(13,14),(10,11)])
+            p(hair_light,[(12,4),(16,2),(19,4),(16,4),(13,6)])
+            r(hair_dark,(10,8,11,12));r(hair_dark,(20,7,21,12))
+        elif side:
+            p(ink,[(9,6),(12,2),(18,2),(22,5),(23,9),(21,13),(18,15),(12,14),(9,11)])
+            p(skin,[(12,6),(18,4),(21,6),(22,9),(20,10),(19,13),(15,14),(12,11)])
+            p(skin_light,[(15,6),(19,5),(20,7),(17,7)])
+            p(hair,[(9,9),(10,4),(14,1),(19,2),(22,5),(20,7),(17,5),(13,6),(12,11)])
+            p(hair_light,[(12,4),(15,2),(19,3),(16,4)])
+            r(ink,(19,8,20,8));r(skin_shadow,(22,9,23,10))
+            if obi:
+                p(hair,[(14,11),(18,12),(21,10),(20,14),(17,16),(13,14)])
+                l(hair_light,14,13,18,14)
+            else:
+                l(skin_shadow,20,8,19,11);r(hair_dark,(11,10,12,13))
+        else:
+            p(ink,[(9,6),(11,2),(16,1),(21,3),(23,7),(22,13),(19,16),(13,16),(9,12)])
+            p(skin,[(11,6),(16,4),(21,6),(21,11),(18,14),(14,14),(11,11)])
+            p(skin_light,[(13,6),(17,4),(20,6),(18,8),(14,8)])
+            p(hair,[(9,10),(9,5),(13,1),(19,2),(23,5),(22,8),(19,6),(16,5),(13,7),(11,7),(11,12)])
+            p(hair_light,[(12,4),(15,2),(19,3),(17,5),(13,6)])
+            r(ink,(13,9,14,9));r(ink,(18,9,19,9));r(skin_shadow,(16,10,16,12))
+            if obi:
+                p(hair,[(11,11),(14,13),(17,12),(21,10),(20,14),(17,16),(13,15),(11,13)])
+                l(hair_light,13,13,16,14,19,12)
+            else:
+                l(skin_shadow,20,8,20,11);l(hair_dark,10,9,11,13);l(hair_dark,19,5,21,7)
+                r(skin_shadow,(14,13,18,13))
     if c[5]=='besalisk':r(7,(8,25,10,26));r(7,(23,25,26,26))
     if direction==3:im=im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     return im
@@ -314,6 +353,18 @@ def font(size):
 
 def main():
     ROOT.mkdir(parents=True,exist_ok=True)
+    if sys.argv[1:]==['--players-only']:
+        for c in ROSTER:
+            if c[0] not in ('Anakin Skywalker','Obi-Wan Kenobi'):continue
+            name=slug(c[0]);path=ROOT/f'{name}.json';data=json.loads(path.read_text())
+            frames=[overworld(c,r,k) for r in range(4) for k in range(4)]
+            data['artRevision']=3;data['frames']=[encode(frame) for frame in frames]
+            path.write_text(json.dumps(data,separators=(',',':'))+'\n')
+            sheet=Image.new('RGBA',(128,128))
+            for i,frame in enumerate(frames):sheet.paste(frame.convert('RGBA'),((i%4)*32,(i//4)*32))
+            sheet.resize((512,512),Image.Resampling.NEAREST).save(ROOT/f'{name}-walk.png')
+        print('Built the approved Anakin and Obi-Wan overworld revisions.')
+        return
     board=Image.new('RGB',(1500,((len(ROSTER)+5)//6)*265+70),'#10171e');d=ImageDraw.Draw(board)
     d.text((25,20),'SOUL LINK · CLONE WARS · PIXELSTIL 02',font=font(25),fill='#ecd7ab')
     for index,c in enumerate(ROSTER):
@@ -324,7 +375,7 @@ def main():
         for im in front+back+frames:
             assert im.getpixel((im.width-1,im.height-1))==0
             assert len(im.getcolors())<=16
-        data={'format':2,'artRevision':2,'name':c[0],'size':32,
+        data={'format':2,'artRevision':3 if c[0] in ('Anakin Skywalker','Obi-Wan Kenobi') else 2,'name':c[0],'size':32,
               'bladeIndices':[14,15] if c[5]=='yoda' else [13,14],
               'palette':[[round(v*31/255) for v in rgb] for rgb in pal],
               'frames':[encode(f) for f in frames],'front':[encode(f) for f in front],'back':[encode(f) for f in back]}
