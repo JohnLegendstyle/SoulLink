@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.15.0 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.0)
+## [0.15.1 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.1)
+
+30.09.2026 · Windows x64.
+
+Die kleinen Spielfiguren von Anakin und Obi-Wan wurden vollständig neu aufgebaut. Beide verwenden nun gleichmäßige, schlankere Körperproportionen, klar erkennbare Clone-Wars-Kleidung, Anakins markante Haare beziehungsweise Obi-Wans Haare und Bart sowie korrekt in der Hand sitzende blaue Lichtschwerter. Vorder-, Rück- und Seitenansichten besitzen passende Laufphasen. Spielstände, Runden, Website-Daten und eigene Tasten-/Controllerprofile bleiben unverändert. [Update-Hinweise](releases/v0.15.1.md).
+
+## [0.15.0](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.0)
 
 30.09.2026 · zunächst Windows x64.
 

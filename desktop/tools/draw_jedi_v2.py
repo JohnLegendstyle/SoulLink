@@ -12,6 +12,7 @@ from draw_jedi import ROSTER, slug, shade, encode
 from jedi_approved import plo, yoda, Sprite
 
 ROOT=Path(__file__).resolve().parents[1]/'assets'/'jedi'
+PLAYER_SOURCE=ROOT/'anakin-obiwan-overworld-source.png'
 
 
 def colors(c):
@@ -345,6 +346,72 @@ def overworld(c,direction,phase):
     return im
 
 
+def production_player_overworld(c,direction,phase):
+    """Import the approved high-detail player sheet into the native 32 px cell.
+
+    The source is an enlarged review sheet with Anakin in columns 0-3 and
+    Obi-Wan in columns 4-7.  Every cell is normalized independently so the
+    feet stay planted while hair, robes and the saber keep their silhouette.
+    Colors are mapped to the character's shared 16-color ROM palette, which
+    keeps battle portraits and field frames compatible with one texture.
+    """
+    if c[0] not in ('Anakin Skywalker','Obi-Wan Kenobi'):
+        return overworld(c,direction,phase)
+    source=Image.open(PLAYER_SOURCE).convert('RGBA')
+    cell_w,cell_h=source.width//8,source.height//4
+    character_col=0 if c[0]=='Anakin Skywalker' else 4
+    # The game's four-step walk bank expects the two standing beats to share
+    # one frame (0, left, 0, right), matching the original animation cadence.
+    source_phase=0 if phase==2 else phase
+    left=(character_col+source_phase)*cell_w
+    top=direction*cell_h
+    cell=source.crop((left,top,left+cell_w,top+cell_h))
+    alpha=cell.getchannel('A')
+    bbox=alpha.point(lambda value:255 if value>=48 else 0).getbbox()
+    if not bbox:
+        raise ValueError(f'Empty player frame: {c[0]} direction={direction} phase={phase}')
+    cell=cell.crop(bbox)
+    scale=min(30/cell.width,30/cell.height)
+    size=(max(1,round(cell.width*scale)),max(1,round(cell.height*scale)))
+    cell=cell.resize(size,Image.Resampling.LANCZOS)
+
+    pal=palette_of(battle(c))
+    out=Image.new('P',(32,32));set_colors(out,pal)
+    rgba=cell.load();pixels=[]
+    for y in range(cell.height):
+        for x in range(cell.width):
+            red,green,blue,opacity=rgba[x,y]
+            if opacity<48:
+                pixels.append(0)
+                continue
+            # Blue and white saber pixels use the fixed blade indices expected
+            # by the ROM patcher. Costume pixels use perceptual nearest color.
+            if blue>red*1.35 and blue>green*1.05 and blue>115:
+                pixels.append(14 if red+green+blue>610 else 13)
+                continue
+            pixels.append(min(range(1,16),key=lambda index:
+                3*(red-pal[index][0])**2+4*(green-pal[index][1])**2+2*(blue-pal[index][2])**2))
+    mapped=Image.new('P',cell.size);set_colors(mapped,pal);mapped.putdata(pixels)
+    out.paste(mapped,((32-cell.width)//2,31-cell.height))
+    # Image-generation review sheets can contain a few isolated sparkle pixels.
+    # Strip only tiny disconnected islands; the body and saber remain intact.
+    values=list(out.getdata());seen=set()
+    for origin,value in enumerate(values):
+        if value==0 or origin in seen:continue
+        component=[];pending=[origin];seen.add(origin)
+        while pending:
+            current=pending.pop();component.append(current)
+            x,y=current%32,current//32
+            for nx,ny in ((x-1,y),(x+1,y),(x,y-1),(x,y+1)):
+                neighbor=ny*32+nx
+                if 0<=nx<32 and 0<=ny<32 and neighbor not in seen and values[neighbor]!=0:
+                    seen.add(neighbor);pending.append(neighbor)
+        if len(component)<3:
+            for index in component:values[index]=0
+    out.putdata(values)
+    return out
+
+
 def font(size):
     for path in ('/System/Library/Fonts/Supplemental/Arial.ttf','/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'):
         if Path(path).exists():return ImageFont.truetype(path,size)
@@ -357,8 +424,8 @@ def main():
         for c in ROSTER:
             if c[0] not in ('Anakin Skywalker','Obi-Wan Kenobi'):continue
             name=slug(c[0]);path=ROOT/f'{name}.json';data=json.loads(path.read_text())
-            frames=[overworld(c,r,k) for r in range(4) for k in range(4)]
-            data['artRevision']=3;data['frames']=[encode(frame) for frame in frames]
+            frames=[production_player_overworld(c,r,k) for r in range(4) for k in range(4)]
+            data['artRevision']=4;data['frames']=[encode(frame) for frame in frames]
             path.write_text(json.dumps(data,separators=(',',':'))+'\n')
             sheet=Image.new('RGBA',(128,128))
             for i,frame in enumerate(frames):sheet.paste(frame.convert('RGBA'),((i%4)*32,(i//4)*32))
@@ -369,13 +436,14 @@ def main():
     d.text((25,20),'SOUL LINK · CLONE WARS · PIXELSTIL 02',font=font(25),fill='#ecd7ab')
     for index,c in enumerate(ROSTER):
         front=[battle(c,False,p) for p in range(2)];back=[battle(c,True,p) for p in range(2)]
-        frames=[overworld(c,r,k) for r in range(4) for k in range(4)]
+        frames=[production_player_overworld(c,r,k) if c[0] in ('Anakin Skywalker','Obi-Wan Kenobi') else overworld(c,r,k)
+                for r in range(4) for k in range(4)]
         pal=palette_of(front[0]);name=slug(c[0])
         # All images share one palette. Transparent border protects picture cipher.
         for im in front+back+frames:
             assert im.getpixel((im.width-1,im.height-1))==0
             assert len(im.getcolors())<=16
-        data={'format':2,'artRevision':3 if c[0] in ('Anakin Skywalker','Obi-Wan Kenobi') else 2,'name':c[0],'size':32,
+        data={'format':2,'artRevision':4 if c[0] in ('Anakin Skywalker','Obi-Wan Kenobi') else 2,'name':c[0],'size':32,
               'bladeIndices':[14,15] if c[5]=='yoda' else [13,14],
               'palette':[[round(v*31/255) for v in rgb] for rgb in pal],
               'frames':[encode(f) for f in frames],'front':[encode(f) for f in front],'back':[encode(f) for f in back]}

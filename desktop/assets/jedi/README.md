@@ -1,12 +1,13 @@
 # Clone Wars pixel-art pack
 
-Hand-authored unofficial fan art. Characters belong to Lucasfilm. No Nintendo
-graphics or downloaded Star Wars artwork are distributed in this folder.
-The requested built-in image generation failed; the user explicitly chose manual
-creation with no image-generation API. All shipped pixels are drawn by the
-versioned coordinate sources `desktop/tools/draw_jedi_v2.py` and
-`desktop/tools/jedi_approved.py` using Pillow as a local
-rasterizer, without a model, API key, tracing, or external image inputs.
+Unofficial fan art. Characters belong to Lucasfilm. No Nintendo graphics or
+downloaded Star Wars artwork are distributed in this folder. Most designs are
+drawn by the versioned coordinate sources `desktop/tools/draw_jedi_v2.py` and
+`desktop/tools/jedi_approved.py` using Pillow as a local rasterizer. Revision 4
+uses the locally stored generated concept
+`anakin-obiwan-overworld-source.png` for the two player field sprites and maps
+it deterministically into the shared native 16-color ROM palettes. Playing and
+building the packaged app requires no model, network service or API key.
 
 45 Jedi/Padawan designs are in `roster.json`, including Anakin and Obi-Wan.
 This is the implemented roster, not a claim of covering every unnamed or cameo
@@ -43,6 +44,10 @@ Revision 2 adopts the approved Plo Koon/Yoda pixel language for all 45 designs.
 Their first front frames remain pixel-identical to the approved native drawings.
 Every character includes explicit palette indices for its two blade colors;
 palette index meanings are not assumed to be identical between alien designs.
+
+Revision 4 replaces the small Anakin/Obi-Wan field sprites with the approved
+slimmer Clone-Wars proportions, directional hair/beard/costume silhouettes and
+lightsabers held close to the body.
 
 Rebuild: `python desktop/tools/draw_jedi_v2.py` (development Pillow installation).
 `draw_jedi.py` retains the roster and legacy source for comparison only.
