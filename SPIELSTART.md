@@ -1,10 +1,12 @@
 # Soul Link · Anakin und Obi-Wan
 
-## Update 0.15: Windows-Kampfhilfe, Starterwahl und Direkt-Update
+## Update 0.15.2: vollständige Randomisierung, Wunsch-Starter und reparierte Kampfhilfe
 
-Diese Version wird zunächst nur als **Windows-x64-Paket** ausgeliefert. Im Focus-Spielfenster erscheint im Kampf rechts unten eine Live-Hilfe: Typen und Schwächen des gegnerischen Pokémon sowie die vier Attacken des eigenen aktiven Pokémon mit **keine Wirkung**, **nicht effektiv**, **effektiv** oder **sehr effektiv**. Die Daten werden ausschließlich aus dem laufenden Spiel gelesen; es wird weder gespeichert noch der Kampf verändert.
+Diese Version wird zunächst nur als **Windows-x64-Paket** ausgeliefert. Im Focus-Spielfenster erscheint im Kampf rechts unten eine Live-Hilfe: Typen und Schwächen des gegnerischen Pokémon sowie die vier Attacken des eigenen aktiven Pokémon mit **keine Wirkung**, **nicht effektiv**, **effektiv** oder **sehr effektiv**. Die Speicheradressen der ersten 0.15-Version waren falsch und ließen die Anzeige bei „Warte auf einen Kampf“ stehen; 0.15.2 liest den echten laufenden Kampf. Die Daten werden ausschließlich gelesen, es wird weder gespeichert noch der Kampf verändert.
 
-Bei einer neuen Runde zeigt der Launcher für Anakin und Obi-Wan jeweils die drei erzeugten Starter. Erst einen Starter markieren und **Auswählen · im Spiel T1 nennen** drücken, danach das Spiel starten. Mindestens einer der drei Vorschläge ist legendär oder mysteriös. Der geprüfte Spielstand bleibt aus Sicherheitsgründen direkt vor der Auswahl: im Labor nur noch den Pokéball bestätigen und den Starter **T1** nennen. Ein ungetesteter Sprung über Story-Ereignisse bis zum Fangtutorial wird nicht vorgenommen.
+Bei einer neuen Runde zeigt der Launcher für Anakin und Obi-Wan jeweils drei erzeugte Starter und darunter einen vierten, durchsuchbaren Wunsch-Starter. Erst einen Eintrag markieren; beim Wunsch-Starter zusätzlich ein Pokémon aus der Suchliste wählen. Danach **Auswählen · mittleren Pokéball nehmen · T1 nennen** drücken und das Spiel starten. Mindestens einer der drei Zufallsvorschläge ist legendär oder mysteriös. Nur der gewählte Starter kommt in den mittleren Pokéball; links und rechts bleiben zwei verschiedene andere Pokémon. Der Rivale bekommt deshalb nicht denselben Starter. Der geprüfte Spielstand bleibt aus Sicherheitsgründen direkt vor der Auswahl: im Labor den mittleren Pokéball bestätigen und den Starter **T1** nennen.
+
+Die aktivierte Abenteuer-Option randomisiert in 0.15.2 wilde Begegnungen und gegnerische Trainerteams über die vollständige ROM-Schreibstrecke und kontrolliert die gespeicherte Ausgabe. Ältere mit 0.15.0 oder 0.15.1 erzeugte Runden werden nicht nachträglich verändert. Für die korrigierte Randomisierung deshalb nach dem Update eine **neue Runde** erstellen; bestehende Fortschritte nur weiterspielen, wenn ihr deren bisherige Verteilung bewusst behalten möchtet.
 
 Das Windows-Update ersetzt nach Bestätigung die Programmdateien im bisherigen Soul-Link-Ordner und startet die App neu. Spielstände, Runden, Website-Verbindung und Tastenprofile liegen außerhalb beziehungsweise bleiben als eigene Dateien unberührt. Ersetzte Programmteile werden vorher in einer Rückfallkopie gesichert. Vor dem Update im Spiel speichern, beide Spielfenster schließen und den Cloud-Abgleich abwarten.
 
@@ -50,7 +52,7 @@ Ab Version 0.14.3 liest die App bei deutscher SoulSilver alle **20 Sekunden** ei
 2. `SoulLink.exe` starten. Die neue App ist noch nicht mit einem kommerziellen Zertifikat signiert. Falls Windows beim ersten Start nachfragt, nur das selbst heruntergeladene SoulLink-Paket freigeben.
 3. Eure eigene deutsche **Pokémon SoulSilver-ROM (.nds, Spielcode IPGD)** auswählen. Emulator und Java sind im Download enthalten.
 4. **Neue randomisierte Runde erstellen**. Beide Spieler erhalten eigene ROMs und Spielstände in einem neuen Ordner. Die Original-ROM wird nicht verändert.
-5. Im Launcher einen der drei Starter auswählen, dann **Anakin starten** (John) oder **Obi-Wan starten** (Eddie). Im Spiel **WEITER** wählen: Ihr steht als männlicher Trainer direkt vor der Auswahl. Pokéball bestätigen und den Starter **T1** nennen.
+5. Im Launcher einen der drei Zufallsstarter oder den durchsuchbaren Wunsch-Starter auswählen, dann **Anakin starten** (John) oder **Obi-Wan starten** (Eddie). Im Spiel **WEITER** wählen: Ihr steht als männlicher Trainer direkt vor der Auswahl. Den **mittleren** Pokéball bestätigen und den Starter **T1** nennen. Die beiden anderen Pokébälle bleiben verschieden; der Rivale erhält nicht dasselbe Pokémon.
 
 Standardmäßig werden auch wilde Pokémon und gegnerische Trainerteams zufällig geändert. Die Option kann abgewählt werden: Dann ändern sich nur die Starter und die dazugehörigen Rivalen-Starter. Level, Attacken, Typen und Werte behalten ihre normale Logik; geskriptete Geschenke/statische Begegnungen bleiben unverändert.
 

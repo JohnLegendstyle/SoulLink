@@ -8,7 +8,7 @@ import hashlib
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from .save_reader import read_save
@@ -30,6 +30,8 @@ class PlayerPack:
     seed: int
     starters: list[dict[str, object]]
     selected_starter: int | None = None
+    catalog: list[dict[str, object]] = field(default_factory=list)
+    custom_starter: dict[str, object] | None = None
 
 
 def runtime_root() -> Path:
@@ -76,7 +78,11 @@ def _valid_battle_metadata(path: Path) -> bool:
     try:
         data = json.loads(path.read_text(encoding='utf-8'))
         moves = data.get('moves', {})
-        return data.get('format') == 1 and isinstance(moves, dict) and len(moves) >= 400
+        pokemon = data.get('pokemon', [])
+        species = {item.get('species') for item in pokemon if isinstance(item, dict)}
+        return (data.get('format') == 1 and isinstance(moves, dict) and len(moves) >= 400
+                and isinstance(pokemon, list) and len(species) == 493
+                and species == set(range(1, 494)))
     except (OSError, ValueError, TypeError):
         return False
 
@@ -104,9 +110,17 @@ def ensure_battle_metadata(rom: Path) -> Path:
     return destination
 
 
-def choose_starter(pack: PlayerPack, index: int, manifest: Path) -> PlayerPack:
-    if not 0 <= index < len(pack.starters):
-        raise ValueError('Bitte einen der drei Starter auswählen.')
+def pokemon_catalog(rom: Path) -> list[dict[str, object]]:
+    data = json.loads(ensure_battle_metadata(rom).read_text(encoding='utf-8'))
+    catalog = data.get('pokemon', [])
+    if not isinstance(catalog, list) or len(catalog) != 493:
+        raise RuntimeError('Die Liste der verfügbaren Wunsch-Starter ist unvollständig.')
+    return [{'species': int(item['species']), 'name': str(item['name'])} for item in catalog]
+
+
+def choose_starter(pack: PlayerPack, index: int, manifest: Path, custom_species: int | None = None) -> PlayerPack:
+    if not 0 <= index <= 3:
+        raise ValueError('Bitte einen der vier Starter auswählen.')
     if pack.save and read_save(pack.save).owned:
         raise ValueError('Diese Runde wurde bereits begonnen. Der Starter wird nicht nachträglich geändert.')
 
@@ -115,7 +129,16 @@ def choose_starter(pack: PlayerPack, index: int, manifest: Path) -> PlayerPack:
     if len(players) != 1:
         raise ValueError('Die Runde passt nicht eindeutig zu diesem Spieler.')
 
-    species = int(pack.starters[index]['species'])
+    custom = None
+    if index == 3:
+        custom = next((item for item in pack.catalog if int(item['species']) == custom_species), None)
+        if custom is None:
+            raise ValueError('Bitte für den vierten Platz ein Pokémon aus der Suche auswählen.')
+        species = int(custom['species'])
+    else:
+        if index >= len(pack.starters):
+            raise ValueError('Die zufällige Starterauswahl ist unvollständig.')
+        species = int(pack.starters[index]['species'])
     original = pack.rom.with_suffix('.starter-options.nds')
     if not original.exists():
         shutil.copy2(pack.rom, original)
@@ -148,6 +171,7 @@ def choose_starter(pack: PlayerPack, index: int, manifest: Path) -> PlayerPack:
         }
         atomic_write(identity_path, json.dumps(identity).encode('utf-8'))
         players[0]['selectedStarter'] = index
+        players[0]['customStarter'] = custom
         atomic_write(manifest, json.dumps(data, indent=2, ensure_ascii=False).encode('utf-8'))
     except Exception:
         if rollback.is_file():
@@ -159,7 +183,8 @@ def choose_starter(pack: PlayerPack, index: int, manifest: Path) -> PlayerPack:
         temporary.unlink(missing_ok=True)
         raise
     rollback.unlink(missing_ok=True)
-    return PlayerPack(pack.player, pack.trainer, pack.rom, pack.save, pack.seed, pack.starters, index)
+    return PlayerPack(pack.player, pack.trainer, pack.rom, pack.save, pack.seed,
+                      pack.starters, index, pack.catalog, custom)
 
 
 def randomize(input_rom: Path, output_rom: Path, seed: int, mode: str = 'adventure') -> list[dict[str, object]]:
@@ -215,13 +240,15 @@ def create_round(
         shutil.copy2(template, save)
         from .identity import rename_save,NAMES
         rename_save(save,player)
-        packs.append(PlayerPack(player, NAMES[player], rom, save, seed, starters, None))
+        catalog = pokemon_catalog(rom)
+        packs.append(PlayerPack(player, NAMES[player], rom, save, seed, starters, None, catalog, None))
 
     manifest = {
         "format": 1,
         "mode": mode,
         "createdAt": datetime.now().astimezone().isoformat(),
         "source": {"file": original_rom.name, "sha256": hashlib.sha256(original_rom.read_bytes()).hexdigest()},
+        "pokemonCatalog": packs[0].catalog,
         "players": [
             {
                 "player": p.player, "trainer": p.trainer, "seed": p.seed,
@@ -248,6 +275,7 @@ def load_round(manifest: Path) -> list[PlayerPack]:
     if data.get('format') != 1:
         raise ValueError('Unbekanntes Rundenformat.')
     packs = []
+    catalog = data.get('pokemonCatalog', [])
     for p in data['players']:
         if p['player'] not in ('Optimus', 'Bee'):
             raise ValueError('Unbekannter Spieler in der Runde.')
@@ -258,9 +286,16 @@ def load_round(manifest: Path) -> list[PlayerPack]:
         if not rom.is_file() or not save.is_file():
             raise ValueError('ROM oder Spielstand fehlen. Bitte den ganzen Runden-Ordner öffnen.')
         selected = p.get('selectedStarter')
-        if selected is not None and (type(selected) is not int or not 0 <= selected < len(p['starters'])):
+        if selected is not None and (type(selected) is not int or not 0 <= selected <= 3):
             raise ValueError('Ungültige Starterwahl in der Runde.')
-        packs.append(PlayerPack(p['player'], p['trainer'], rom, save, int(p['seed']), p['starters'], selected))
+        if not catalog:
+            catalog = pokemon_catalog(rom)
+        custom = p.get('customStarter')
+        if selected == 3 and (not isinstance(custom, dict)
+                              or int(custom.get('species', 0)) not in range(1, 494)):
+            raise ValueError('Der Wunsch-Starter fehlt in der Runde.')
+        packs.append(PlayerPack(p['player'], p['trainer'], rom, save, int(p['seed']),
+                                p['starters'], selected, catalog, custom))
     if {p.player for p in packs} != {'Optimus','Bee'} or len(packs) != 2:
         raise ValueError('Die Runde muss beide Spieler (Anakin und Obi-Wan) enthalten.')
     return packs

@@ -251,6 +251,8 @@ class SoulLinkApp(tk.Tk):
         self.player_cards=[]
         self.starter_frames={}
         self.starter_vars={}
+        self.custom_starter_vars={}
+        self.custom_starter_maps={}
         for column,(name,character) in enumerate((('Optimus','JOHN · ANAKIN SKYWALKER'),('Bee','EDDIE · OBI-WAN KENOBI'))):
             card=ttk.Frame(tab,padding=22,style='Panel.TFrame')
             self.player_cards.append(card)
@@ -303,16 +305,32 @@ class SoulLinkApp(tk.Tk):
                 continue
             try:started=bool(pack.save and read_save(pack.save).owned)
             except (OSError,ValueError):started=False
-            ttk.Label(frame,text='DEINE 3 RANDOM-STARTER',style='Panel.TLabel',foreground=COLORS['gold'],font=('Arial',9,'bold')).pack(anchor='w')
+            ttk.Label(frame,text='3 RANDOM-STARTER + 1 WUNSCH-STARTER',style='Panel.TLabel',foreground=COLORS['gold'],font=('Arial',9,'bold')).pack(anchor='w')
             selected=pack.selected_starter if pack.selected_starter is not None else -1
             var=tk.IntVar(value=selected);self.starter_vars[player]=var
             for index,starter in enumerate(pack.starters):
                 label=f"#{int(starter['species']):03d}  {starter['name']}"
                 ttk.Radiobutton(frame,text=label,variable=var,value=index).pack(anchor='w',pady=2)
+            custom_row=ttk.Frame(frame,style='Panel.TFrame');custom_row.pack(fill='x',pady=(4,2))
+            ttk.Radiobutton(custom_row,text='Wunsch:',variable=var,value=3).pack(side='left')
+            labels=[f"#{int(item['species']):03d}  {item['name']}" for item in pack.catalog]
+            by_label={label.casefold():int(item['species']) for label,item in zip(labels,pack.catalog)}
+            self.custom_starter_maps[player]=by_label
+            initial=''
+            if pack.custom_starter:
+                initial=f"#{int(pack.custom_starter['species']):03d}  {pack.custom_starter['name']}"
+            custom_var=tk.StringVar(value=initial);self.custom_starter_vars[player]=custom_var
+            search=ttk.Combobox(custom_row,textvariable=custom_var,values=labels,width=24)
+            search.pack(side='left',fill='x',expand=True,padx=(6,0))
+            search.bind('<<ComboboxSelected>>',lambda _event,v=var:v.set(3))
+            def filter_catalog(_event,box=search,value=custom_var,all_labels=labels):
+                needle=value.get().strip().casefold()
+                box.configure(values=all_labels if not needle else [label for label in all_labels if needle in label.casefold()][:80])
+            search.bind('<KeyRelease>',filter_catalog)
             if started:
                 ttk.Label(frame,text='Runde läuft · Auswahl ist geschützt',style='Panel.TLabel',foreground=COLORS['muted']).pack(anchor='w',pady=(5,0))
             else:
-                ttk.Button(frame,text='Auswählen · im Spiel T1 nennen',command=lambda p=player:self.apply_starter_choice(p)).pack(fill='x',pady=(7,0))
+                ttk.Button(frame,text='Auswählen · mittleren Pokéball nehmen · T1 nennen',command=lambda p=player:self.apply_starter_choice(p)).pack(fill='x',pady=(7,0))
 
     def apply_starter_choice(self,player):
         if self.creating:return
@@ -320,13 +338,20 @@ class SoulLinkApp(tk.Tk):
         selected=self.starter_vars.get(player)
         index=selected.get() if selected is not None else -1
         if not pack or index<0:
-            messagebox.showinfo('Starter auswählen','Bitte zuerst eines der drei Pokémon markieren.');return
+            messagebox.showinfo('Starter auswählen','Bitte zuerst eines der vier Pokémon markieren.');return
+        custom_species=None
+        if index==3:
+            custom_var=self.custom_starter_vars.get(player)
+            text=custom_var.get().strip().casefold() if custom_var is not None else ''
+            custom_species=self.custom_starter_maps.get(player,{}).get(text)
+            if custom_species is None:
+                messagebox.showinfo('Wunsch-Starter','Bitte ein Pokémon aus der Suchliste auswählen.');return
         manifest=Path(str(self.settings.get('manifest','')))
         self.creating=True;self.create_button.state(['disabled']);self.status_var.set('Starterwahl wird sicher in der ROM festgelegt …')
         def work():
             try:
                 from .randomizer import choose_starter
-                self.events.put(('starter-selected',choose_starter(pack,index,manifest)))
+                self.events.put(('starter-selected',choose_starter(pack,index,manifest,custom_species)))
             except Exception as error:self.events.put(('error',str(error)))
         threading.Thread(target=work,daemon=True).start()
 
@@ -573,7 +598,7 @@ class SoulLinkApp(tk.Tk):
             try:started=bool(pack.save and read_save(pack.save).owned)
             except (OSError,ValueError):started=False
             if not started and pack.selected_starter is None:
-                raise RuntimeError('Bitte im Launcher zuerst einen der drei Starter auswählen und als T1 festlegen.')
+                raise RuntimeError('Bitte im Launcher zuerst einen der vier Starter auswählen und als T1 festlegen.')
             input_profile=self.persist_controls(player)
             self._save()
             access=self.online_access()
@@ -731,11 +756,11 @@ class SoulLinkApp(tk.Tk):
                 self.connection_var.set('')
                 self._save()
                 self._refresh_player_cards()
-                self.status_var.set('Fertig! Wählt jetzt je Spieler einen der drei Starter als T1.\n' + directory.name)
+                self.status_var.set('Fertig! Wählt jetzt je Spieler einen der drei Zufallsstarter oder einen Wunsch-Starter.\n' + directory.name)
             elif kind == 'starter-selected':
                 self.packs[value.player]=value;self._refresh_player_cards()
-                chosen=value.starters[value.selected_starter]['name']
-                self.status_var.set(f'{chosen} ist fest als T1 ausgewählt. Im Spiel bitte nur noch den Pokéball und den Namen T1 bestätigen.')
+                chosen=value.custom_starter if value.selected_starter==3 else value.starters[value.selected_starter]
+                self.status_var.set(f"{chosen['name']} ist als T1 ausgewählt. Im Spiel den mittleren Pokéball nehmen und den Namen T1 bestätigen; der Rivale erhält einen anderen Starter.")
             elif kind == 'skins':
                 self.status_var.set('Figuren aktualisiert: Anakin × Obi-Wan mit Lichtschwertern. Euer Spielstand bleibt erhalten.')
             elif kind == 'error':

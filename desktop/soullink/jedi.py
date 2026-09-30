@@ -15,6 +15,15 @@ from .cloud import atomic_write
 
 PLAYERS = {'Optimus':'anakin-skywalker','Bee':'obi-wan-kenobi'}
 ARCHIVES = ('a/0/8/1','a/0/5/8','a/0/0/6')
+# The approved art sheets are ordered back, front, right, left. SoulSilver's
+# field texture banks are back, front, left, right, so only the two side banks
+# need to trade places. Keep this mapping here instead of altering the artwork.
+GAME_TO_ART_DIRECTION = (0,1,3,2)
+
+def _field_frame_index(texture_number):
+    frame=(texture_number-1)%16
+    direction,phase=divmod(frame,4)
+    return GAME_TO_ART_DIRECTION[direction]*4+phase
 
 def asset_root():
     return Path(getattr(sys,'_MEIPASS',Path(__file__).parents[1]))/'assets'/'jedi'
@@ -118,7 +127,7 @@ def _field(data,skin):
     for i,(name,t) in enumerate(texture.textures):
         match=re.search(r'\.(\d+)$',name)
         if not match or t.size!=(32,32) or t.format!=TextureFormat.I4:raise ValueError('Unbekanntes Figurenformat.')
-        frame=skin['frames'][(int(match[1])-1)%16]
+        frame=skin['frames'][_field_frame_index(int(match[1]))]
         if frame not in unique:unique[frame]=len(unique)*512
         offset=unique[frame]
         if offset+512>capacity*8:raise ValueError('Jedi-Animation ist zu groß.')

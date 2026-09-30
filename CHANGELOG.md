@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.15.1 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.1)
+## [0.15.2 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.2)
+
+30.09.2026 · Windows x64.
+
+Die Abenteuer-Randomisierung verwendet nun die vollständige Schreibstrecke des eingebauten Universal Pokémon Randomizer ZX und prüft die gespeicherte ROM anschließend: wilde Begegnungen und gegnerische Trainerteams müssen sich nachweislich vom Original unterscheiden. Neben den drei Zufallsstartern gibt es einen durchsuchbaren vierten Wunsch-Starter. Die Wahl ersetzt ausschließlich den mittleren Pokéball; links und rechts bleiben zwei verschiedene andere Starter, sodass der Rivale nicht denselben Starter erhält. Korrigierte Speicheradressen im Focus-Emulator reparieren außerdem die Live-Anzeige von Gegnertypen, Schwächen und Attackenwirkung. Bei den neuen Anakin-/Obi-Wan-Figuren sind die beiden seitlichen Laufrichtungen nun korrekt zugeordnet, ohne die freigegebenen Modelle zu verändern. Bestehende Spielstände, Runden, Website-Daten und Tastenprofile bleiben beim Update erhalten; für die reparierte Abenteuer-Randomisierung muss eine neue Runde erstellt werden. [Update-Hinweise](releases/v0.15.2.md).
+
+## [0.15.1](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.1)
 
 30.09.2026 · Windows x64.
 

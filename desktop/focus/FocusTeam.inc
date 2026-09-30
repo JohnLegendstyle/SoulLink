@@ -42,13 +42,16 @@ static bool focusBattleMon(const quint8* ram,quint32 size,quint32 ctx,int slot,Q
 static bool focusReadBattle(const quint8* ram,quint32 size,quint32 system,QJsonObject& snapshot)
 {
     if(system+0x80>size)return false;
-    const quint32 maxBattlers=qFromLittleEndian<quint32>(ram+system+0x48);
+    // BattleSystem (pret/pokeheartgold): maxBattlers is 0x44; trainerParty
+    // begins at 0x68. The former offsets pointed into playerProfile/party 1,
+    // so the live helper rejected every real battle before writing types.
+    const quint32 maxBattlers=qFromLittleEndian<quint32>(ram+system+0x44);
     if(maxBattlers!=2&&maxBattlers!=4)return false;
     quint32 ctx=0;
     if(!focusRamPointer(qFromLittleEndian<quint32>(ram+system+0x30),size,0x3040,ctx))return false;
     quint32 playerParty=0,enemyParty=0;
-    if(!focusRamPointer(qFromLittleEndian<quint32>(ram+system+0x6C),size,16,playerParty)
-       ||!focusRamPointer(qFromLittleEndian<quint32>(ram+system+0x70),size,16,enemyParty))return false;
+    if(!focusRamPointer(qFromLittleEndian<quint32>(ram+system+0x68),size,16,playerParty)
+       ||!focusRamPointer(qFromLittleEndian<quint32>(ram+system+0x6C),size,16,enemyParty))return false;
     const auto partyOk=[ram,size](quint32 p){
         if(p+8>size)return false;
         const quint32 maximum=qFromLittleEndian<quint32>(ram+p),count=qFromLittleEndian<quint32>(ram+p+4);
@@ -65,7 +68,7 @@ static bool focusReadBattle(const quint8* ram,quint32 size,quint32 system,QJsonO
 static quint32 focusFindBattleSystem(const quint8* ram,quint32 size,QJsonObject& snapshot)
 {
     for(quint32 p=0;p+0x80<=size;p+=4){
-        const quint32 count=qFromLittleEndian<quint32>(ram+p+0x48);
+        const quint32 count=qFromLittleEndian<quint32>(ram+p+0x44);
         if((count==2||count==4)&&focusReadBattle(ram,size,p,snapshot))return p;
     }
     return 0;

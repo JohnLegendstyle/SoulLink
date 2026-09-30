@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from soullink.jedi import (PLAYERS,roster,load_character,assignments,_dp_cipher,
-                           _sprite_tiles,_field,apply_jedi,rom_identity)
+                           _sprite_tiles,_field,_field_frame_index,apply_jedi,rom_identity)
 
 class JediTests(unittest.TestCase):
     def test_names_preserve_both_save_partitions_and_game_state(self):
@@ -68,7 +68,15 @@ class JediTests(unittest.TestCase):
         result=_field(original,skin)
         self.assertEqual(len(result),len(original))
         self.assertEqual(_field(result,skin),result)
-        for name,t in NSBTX(result).textures:self.assertEqual(t.data1,skin['frames'][(int(name.split('.')[1])-1)%16])
+        for name,t in NSBTX(result).textures:
+            self.assertEqual(t.data1,skin['frames'][_field_frame_index(int(name.split('.')[1]))])
+
+    def test_field_direction_banks_match_soulsilver(self):
+        # Game banks: back, front, left, right. Approved art: back, front,
+        # right, left. Animation phases and the second 16-frame set stay put.
+        self.assertEqual([_field_frame_index(i) for i in (1,5,9,13)], [0,4,12,8])
+        self.assertEqual([_field_frame_index(i) for i in (17,21,25,29)], [0,4,12,8])
+        self.assertEqual([_field_frame_index(i) for i in (10,14)], [13,9])
 
     def test_vram_cells_pack_tiles_at_original_offsets(self):
         # One generated 8x8 OAM shape, one transfer slot, no game-derived bytes.
