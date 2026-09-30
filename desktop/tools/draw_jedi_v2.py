@@ -13,6 +13,39 @@ from jedi_approved import plo, yoda, Sprite
 
 ROOT=Path(__file__).resolve().parents[1]/'assets'/'jedi'
 PLAYER_SOURCE=ROOT/'anakin-obiwan-overworld-source.png'
+PLAYER_IDS=('anakin-skywalker','obi-wan-kenobi')
+# Keep the already approved field frames byte-identical through rebuilds.
+PLAYER_DATA={name:json.loads((ROOT/f'{name}.json').read_text()) for name in PLAYER_IDS}
+# Adult characters only. Clone-Wars Ahsoka/Barriss and all younglings are
+# deliberately excluded. These options affect battle art, never field frames.
+ADULT_BATTLE_COSTUMES={
+    'Aayla Secura':'cropped', 'Shaak Ti':'sleeveless',
+    'Tiplar':'sleeveless', 'Tiplee':'sleeveless',
+    'Finn Ertay':'cropped', 'Tu-Anh':'sleeveless',
+    'Depa Billaba':'sleeveless',
+}
+
+
+def adult_battle_costume(s,c,back):
+    style=ADULT_BATTLE_COSTUMES.get(c[0])
+    if not style:return
+    # Practical opaque Jedi tunics, exposed shoulders and forearms. Keep
+    # the same limb anchors, boots and belt; no anatomical exaggeration.
+    s.p(6,23,35,27,34,29,37,25,42,22,47,19,48,20,43)
+    s.p(7,24,35,26,35,27,37,24,41,21,46,20,46,22,41)
+    s.p(8,24,36,25,35,26,37,23,42,22,42)
+    s.p(6,48,34,51,35,54,41,55,45,58,44,60,47,56,50,52,47,51,42)
+    s.p(7,49,35,51,36,52,41,54,46,57,45,58,47,55,48,53,46,51,41)
+    # Flat high-neck bodice, without cleavage or skin-colored torso fabric.
+    s.p(2,31,33,43,33,46,38,44,45,31,45,29,38)
+    s.p(4,32,34,42,34,44,38,42,43,32,43,31,38)
+    s.l(5,33,35,40,35,42,38)
+    if style=='cropped':
+        s.r(6,32,44,43,47);s.r(7,33,44,41,46)
+        if not back:s.l(8,34,44,40,44)
+    # Preserve an opaque belt and trousers/robe below it.
+    s.r(2,31,48,44,50)
+    if not back:s.r(15,36,48,38,49)
 
 
 def colors(c):
@@ -231,13 +264,14 @@ def humanoid(c,back=False):
         s.p(3,31,33,40,32,46,36,43,46,45,62,32,63,33,45)
         s.l(2,39,36,38,46,40,60);s.l(4,33,36,35,41)
         s.r(2,31,47,44,49)
+    adult_battle_costume(s,c,back)
     if 'young' in c[7] or c[5]=='piell':
         compact=s.im.crop((0,0,80,76)).resize((65,61),Image.Resampling.NEAREST)
         s.im=Image.new('P',(80,80));set_colors(s.im,pal);s.im.paste(compact,(7,15))
     return s.im
 
 
-def battle(c,back=False,pose=0):
+def native_battle(c,back=False,pose=0):
     if c[5] in ('kel-dor','yoda'):
         s=plo() if c[5]=='kel-dor' else yoda()
         if back and c[5]=='kel-dor':
@@ -257,6 +291,109 @@ def battle(c,back=False,pose=0):
         # Small blade sway without moving the feet or changing the approved pose.
         crop=im.crop((66,2,78,36));im.paste(0,(66,2,78,36));im.paste(crop,(65,2))
     return im
+
+
+def battle(c,back=False,pose=0):
+    if slug(c[0]) in PLAYER_IDS:return hero_battle(c,back,pose)
+    im=native_battle(c,back,pose)
+    if c[5]=='yoda':
+        # Yoda keeps his intentionally short stature and wide ears.
+        out=Image.new('P',(80,80));set_colors(out,palette_of(im))
+        out.paste(im.crop((0,0,80,76)).resize((72,66),Image.Resampling.NEAREST),(4,11))
+        return out
+    if 'young' in c[7] or c[5]=='piell':
+        out=Image.new('P',(80,80));set_colors(out,palette_of(im))
+        out.paste(im.resize((74,74),Image.Resampling.NEAREST),(3,3))
+        return out
+    # Adult portraits share the approved heroic proportions: less oversized
+    # head, longer torso/legs, a planted stance and a consistent single-pixel
+    # contour. Transform the authored source, retaining each species' details.
+    out=Image.new('P',(80,80));set_colors(out,palette_of(im))
+    upper=im.crop((0,0,80,31)).resize((72,24),Image.Resampling.NEAREST)
+    lower=im.crop((0,31,80,77)).resize((72,49),Image.Resampling.NEAREST)
+    out.paste(upper,(4,4));out.paste(lower,(4,28))
+    return out
+
+
+def hero_battle(c,back,pose):
+    """Native reconstruction of the approved navy/ivory armored Jedi design.
+
+    18px head over a 53px armored body, open split tunic, planted boots, blue
+    saber in the right hand. Rear views are drawn separately, not mirrored.
+    Uses the existing field palette so approved walking pixels stay unchanged.
+    """
+    s=Sprite(['000000']*15);set_colors(s.im,colors(c));p,r,l=s.p,s.r,s.l
+    obi=c[0]=='Obi-Wan Kenobi'
+    # Boots and legs: dynamic stance, narrow waist, broad armored shoulders.
+    p(1,32,47,44,47,39,62,32,75,21,76,21,72,27,65)
+    p(2,33,50,39,50,35,63,29,73,23,74,26,69,30,63)
+    p(9,26,65,32,67,29,73,24,75,23,72)
+    l(11,26,67,30,68);l(10,24,73,28,72)
+    p(1,43,47,52,49,55,64,62,72,64,76,52,76,49,72,46,62)
+    p(2,44,51,49,51,51,65,58,72,59,74,54,74,51,70,47,61)
+    p(9,50,65,55,64,56,69,60,73,60,75,54,74,52,70)
+    l(11,51,66,54,66);l(10,55,73,60,74)
+    # Coat panels and tunic, distinct cream and navy silhouettes.
+    p(1,29,24,40,22,48,24,53,34,49,43,56,60,49,65,43,58,37,61,29,66,23,61,30,43)
+    p(3,30,26,40,24,47,26,50,34,46,44,51,59,48,61,42,54,36,59,29,62,26,59,33,42)
+    p(4,32,26,38,25,39,38,35,45,31,58,28,60,31,46)
+    p(5,40,25,44,26,45,38,41,45,43,57,40,55,38,45,42,35)
+    l(2,34,32,35,39,32,50,29,58);l(2,45,45,47,55,49,60)
+    l(5,28,60,32,56,35,46)
+    # Shoulder plates and extended saber arm.
+    p(1,28,25,32,25,32,32,29,38,24,43,17,44,14,40,20,36,23,29)
+    p(3,26,28,30,27,30,31,26,37,22,40,18,41,17,39,23,35)
+    p(15,26,26,30,26,32,29,30,32,24,32,24,29)
+    l(2,25,30,30,30);l(15,22,37,24,36)
+    p(1,47,25,52,26,55,33,54,38,60,43,65,43,68,46,65,50,60,48,51,43,49,35)
+    p(4,50,27,52,28,53,34,52,38,60,45,63,45,63,47,59,46,50,41)
+    p(15,48,25,51,26,53,29,52,32,48,31,47,28)
+    if obi:
+        p(6,63,44,66,40,68,39,69,41,68,43,71,42,72,43,70,46,72,46,72,48,67,49,64,47)
+        p(7,64,44,67,41,68,41,67,45,70,43,68,47,65,47)
+    else:
+        p(10,62,43,65,44,68,47,67,51,65,50,64,48,64,51,62,49,61,46)
+        l(11,63,45,65,47)
+    # Belt, buckle and holstered leather straps.
+    r(1,31,40,49,44);r(9,32,41,48,43)
+    r(11,33,41,35,42);r(10,39,41,42,43);r(15,40,41,41,42)
+    r(10,46,42,48,47);l(11,47,44,47,46)
+    # Separate head construction in both directions.
+    p(1,34,7,41,5,47,9,49,16,46,23,41,27,35,24,32,17)
+    if back:
+        p(9,34,10,40,7,46,10,47,17,44,23,40,25,35,22,33,17)
+        p(11,35,10,40,8,44,9,42,12,37,13)
+        l(10,44,14,45,19,42,23)
+        p(2,32,25,38,24,43,25,48,29,43,33,38,32,32,28)
+        p(3,33,25,38,25,44,27,45,29,40,31,35,29)
+        l(5,36,27,40,28,43,27)
+        l(2,39,34,40,39);l(5,37,47,36,55)
+    else:
+        p(6,35,10,41,9,46,12,46,18,43,23,39,24,35,21,34,16)
+        p(7,36,11,41,10,45,12,45,18,42,22,39,22,36,20)
+        p(8,37,12,41,11,44,12,43,14,37,15)
+        p(9,32,16,32,11,35,7,40,5,45,7,49,11,47,15,43,11,39,12,36,14,35,18,33,20)
+        p(11,34,11,38,7,42,7,44,9,40,10,37,12)
+        l(10,42,9,45,11,47,12)
+        l(12,36,16,38,16);l(12,42,16,44,16)
+        r(15,37,16,37,16);r(15,43,16,43,16)
+        l(6,40,17,39,19,41,19)
+        if obi:
+            p(9,35,19,38,20,41,20,45,18,44,23,41,26,37,24,35,22)
+            l(11,37,22,40,23,43,21)
+            p(9,36,25,41,26,46,24,44,31,40,33,35,29)
+            l(11,37,27,40,30,43,27)
+        else:
+            l(6,44,15,43,19);l(6,38,21,41,21)
+            p(2,34,24,39,26,44,24,46,28,41,32,36,30,32,27)
+            l(3,35,26,40,29,44,26)
+    # Saber on viewer-left: belongs to the character's right hand.
+    l(1,16,47,13,33,width=4);l(15,15,45,13,34,width=2)
+    l(10,14,39,16,39);l(10,14,43,16,43)
+    l(13,13,33,7+pose,4,width=3);l(14,13,33,7+pose,4)
+    p(6,15,39,19,38,20,41,18,44,15,44,14,42)
+    p(7 if obi else 10,16,39,18,39,19,41,17,43,15,42)
+    return s.im
 
 
 def overworld(c,direction,phase):
@@ -287,7 +424,7 @@ def overworld(c,direction,phase):
     r(1,(sx-1,21,sx+1,24));r(15,(sx,21,sx,23))
     r(7,(sx-1,22,sx+2,23));r(7,(right+1,22,right+2,24))
     # Use the new head designs as a pixel reference at native field scale.
-    src=battle(c,back)
+    src=native_battle(c,back)
     box=(8,26,67,51) if c[5]=='yoda' else (23,0,56,34)
     if 'young' in c[7] or c[5]=='piell':box=(24,15,54,43)
     head=src.crop(box)
@@ -304,6 +441,24 @@ def overworld(c,direction,phase):
         hd.rectangle((6,6,10,11),fill=skin);hd.point((2,8),fill=lut[12])
     mask=Image.new('L',head.size);mask.putdata([255 if v else 0 for v in head.getdata()])
     im.paste(head,(16-width//2,9 if short else 2),mask)
+    if slug(c[0]) not in PLAYER_IDS and not short and c[5]!='thub':
+        # Reuse the approved field-body construction and walk cadence, with
+        # each Jedi's own colors. Species-specific faces/ears/lekku stay above.
+        body_direction=2 if direction==3 else direction
+        template=PLAYER_DATA['obi-wan-kenobi']['frames'][body_direction*4+(0 if phase==2 else phase)]
+        raw=bytes.fromhex(template)
+        values=[p for b in raw for p in (b&15,b>>4)]
+        for y in range(17,31):
+            for x in range(9,24):
+                v=values[y*32+x]
+                if v==15 and 'armor' not in c[7]:v=5
+                im.putpixel((x,y),lut[v])
+        # Keep the small costume shading legible without a blocky full robe.
+        l(2,14,23,20,23);r(15,(16,23,17,23))
+    elif short:
+        # Short species/younglings retain stature rather than inheriting an
+        # adult body; add the same tunic folds and belt line at their scale.
+        l(2,13,24,20,24);l(4,13,26,12,28);l(3,19,26,20,28)
     # Player characters use dedicated native 32 px faces from the approved
     # John/Eddie sheet. This avoids the generic battle-head downscale that
     # made both overworld figures look alike.
@@ -420,6 +575,19 @@ def font(size):
 
 def main():
     ROOT.mkdir(parents=True,exist_ok=True)
+    if sys.argv[1:]==['--adult-costumes-only']:
+        for c in ROSTER:
+            if c[0] not in ADULT_BATTLE_COSTUMES:continue
+            name=slug(c[0]);path=ROOT/f'{name}.json';data=json.loads(path.read_text())
+            front=[battle(c,False,p) for p in range(2)]
+            back=[battle(c,True,p) for p in range(2)]
+            data['artRevision']=5
+            data['front']=[encode(frame) for frame in front]
+            data['back']=[encode(frame) for frame in back]
+            path.write_text(json.dumps(data,separators=(',',':'))+'\n')
+            front[0].convert('RGBA').resize((320,320),Image.Resampling.NEAREST).save(ROOT/f'{name}-battle.png')
+        print('Updated seven adult battle costumes; field sprites and young characters unchanged.')
+        return
     if sys.argv[1:]==['--players-only']:
         for c in ROSTER:
             if c[0] not in ('Anakin Skywalker','Obi-Wan Kenobi'):continue
@@ -433,17 +601,21 @@ def main():
         print('Built the approved Anakin and Obi-Wan overworld revisions.')
         return
     board=Image.new('RGB',(1500,((len(ROSTER)+5)//6)*265+70),'#10171e');d=ImageDraw.Draw(board)
-    d.text((25,20),'SOUL LINK · CLONE WARS · PIXELSTIL 02',font=font(25),fill='#ecd7ab')
+    d.text((25,20),'SOUL LINK · CLONE WARS · PIXELSTIL 06',font=font(25),fill='#ecd7ab')
     for index,c in enumerate(ROSTER):
         front=[battle(c,False,p) for p in range(2)];back=[battle(c,True,p) for p in range(2)]
-        frames=[production_player_overworld(c,r,k) if c[0] in ('Anakin Skywalker','Obi-Wan Kenobi') else overworld(c,r,k)
-                for r in range(4) for k in range(4)]
+        if slug(c[0]) in PLAYER_IDS:
+            frames=[]
+            for raw in PLAYER_DATA[slug(c[0])]['frames']:
+                im=Image.new('P',(32,32));set_colors(im,palette_of(front[0]))
+                im.putdata([p for b in bytes.fromhex(raw) for p in (b&15,b>>4)]);frames.append(im)
+        else:frames=[overworld(c,r,k) for r in range(4) for k in range(4)]
         pal=palette_of(front[0]);name=slug(c[0])
         # All images share one palette. Transparent border protects picture cipher.
         for im in front+back+frames:
             assert im.getpixel((im.width-1,im.height-1))==0
             assert len(im.getcolors())<=16
-        data={'format':2,'artRevision':4 if c[0] in ('Anakin Skywalker','Obi-Wan Kenobi') else 2,'name':c[0],'size':32,
+        data={'format':2,'artRevision':6,'name':c[0],'size':32,
               'bladeIndices':[14,15] if c[5]=='yoda' else [13,14],
               'palette':[[round(v*31/255) for v in rgb] for rgb in pal],
               'frames':[encode(f) for f in frames],'front':[encode(f) for f in front],'back':[encode(f) for f in back]}

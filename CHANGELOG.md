@@ -1,6 +1,21 @@
 # Versionen und Änderungen
 
-## [0.15.3 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.3)
+## [0.15.4 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.4)
+
+30.09.2026 · Windows x64.
+
+Grafikrevision 6 für alle 45 Jedi: passendere Körperproportionen, angepasste
+Lauffiguren und neu gezeichnete große Kampf-Front-/Rückansichten für Anakin und
+Obi-Wan nach der freigegebenen Vorlage. Die genehmigten Spieler-Lauffiguren
+bleiben bytegleich. Dezente freizügigere Kampfoutfits ausschließlich für sieben
+erwachsene Jedi. Vorhandene Runden werden über das Clone-Wars-Menü aktualisiert,
+ohne Fortschritt oder Cloud-Zuordnung zu ändern.
+
+Neue Startvorlage aus dem bestätigten regulären Cloud-Spielstand bei 00:58:01. Die Position und Story-Daten werden übernommen, Trainer und gewähltes T1 werden passend erzeugt. 0.15.3 hatte lediglich den älteren Ingame-Save aus der `.mln` übernommen; der behauptete exakte Savestate-Startpunkt war damit nicht erreicht. Eine neue Runde ist erforderlich, bestehende Fortschritte werden nicht überschrieben. [Update-Hinweise](releases/v0.15.4.md).
+
+## [0.15.3](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.3)
+
+Korrektur: Der spätere Emulatorzustand der `.mln` wurde nicht übernommen, sondern nur ihr letzter Ingame-Save. Der Startpunkt wurde in 0.15.4 durch den bestätigten Cloud-Save ersetzt.
 
 30.09.2026 · Windows x64.
 

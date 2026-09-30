@@ -8,7 +8,7 @@ import struct
 from .save_reader import (GENERAL_SIZE, PARTITION_SIZE, _active, _decrypt,
                           _encrypt, _text, parse_save, read_save)
 
-POSTSTARTER_TEMPLATE_SHA256 = 'cf16abacfde8058f3e5190c19ab2b845c2c439812e5594c45e6af7216809d489'
+POSTSTARTER_TEMPLATE_SHA256 = 'a09350a9d121f4f26e0698f7307c9ddf57de8756c9e3bebb32942d001d74d054'
 
 
 def named_checkpoint(source: Path, target: Path, trainer: str) -> None:

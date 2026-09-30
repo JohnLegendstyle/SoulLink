@@ -93,7 +93,10 @@ class CoreTests(unittest.TestCase):
 
     def test_packaged_poststarter_template_is_sanitized(self):
         with gzip.open(CHECKPOINTS/'poststarter-template.sav.gz','rb') as source:
-            state=parse_save(source.read())
+            data=source.read()
+        state=parse_save(data)
+        general=_active(data,0,GENERAL_SIZE)*PARTITION_SIZE
+        self.assertEqual(struct.unpack_from('<HBB',data,general+0x86),(0,58,1))
         self.assertEqual(state.trainer,'SOULLNK')
         self.assertEqual(len(state.owned),1)
         self.assertEqual(state.party[0].uid,'12345678-534c0001')

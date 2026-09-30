@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract and sanitize the HGSS SRAM embedded in a melonDS 1.1 savestate."""
+"""Sanitize a regular HGSS save or SRAM extracted from a melonDS savestate."""
 from __future__ import annotations
 
 import argparse
@@ -136,7 +136,10 @@ def main() -> None:
     parser.add_argument("savestate", type=Path)
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
-    sanitized = sanitize_checkpoint(extract_hgss_sram(args.savestate.read_bytes()))
+    original = args.savestate.read_bytes()
+    if original[:4] == b"MELN":
+        original = extract_hgss_sram(original)
+    sanitized = sanitize_checkpoint(original)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     compressed = io.BytesIO()
     with gzip.GzipFile(filename="", mode="wb", fileobj=compressed, mtime=0) as target:

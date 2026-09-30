@@ -51,3 +51,18 @@ lightsabers held close to the body.
 
 Rebuild: `python desktop/tools/draw_jedi_v2.py` (development Pillow installation).
 `draw_jedi.py` retains the roster and legacy source for comparison only.
+
+Revision 5 adds modest adult-only battle costume variants: Aayla Secura and
+Finn Ertay wear opaque cropped tunics; Shaak Ti, Tiplar, Tiplee, Tu-Anh and
+Depa Billaba wear sleeveless opaque tunics. Ahsoka's Clone Wars incarnation,
+Barriss, all younglings and all field sprites remain unchanged by this revision.
+Rebuild only these battle variants with `--adult-costumes-only`.
+
+Revision 6 brings all 45 battle sets onto the revised proportion system.
+Anakin/Obi-Wan battle fronts and backs are reconstructed natively from the
+approved navy/ivory armored concepts. Their revision-4 field frames and palettes
+remain byte-identical. Other field bodies share the approved construction with
+species-specific heads and costume colors; small species retain their stature.
+The battle-costume whitelist remains adult-only. This revision is generated
+entirely by the coordinate source; a built-in image generation attempt failed
+and no additional image API or externally generated asset is required.

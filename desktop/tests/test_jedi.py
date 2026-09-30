@@ -8,6 +8,19 @@ from soullink.jedi import (PLAYERS,roster,load_character,assignments,_dp_cipher,
                            _sprite_tiles,_field,_field_frame_index,apply_jedi,rom_identity)
 
 class JediTests(unittest.TestCase):
+    def test_revision_six_keeps_approved_player_walks(self):
+        expected={
+            'anakin-skywalker':'afd7456a900331ba7c64bd0158d959f47f0f098306c7a6e9a3fe4d6979116ffa',
+            'obi-wan-kenobi':'db35ad985d326696699d79f7355a082362d1424245310a4f648dd2074f4a0048',
+        }
+        for character in roster():
+            skin=load_character(character['id'])
+            self.assertEqual(skin['artRevision'],6,character['id'])
+            if character['id'] in expected:
+                self.assertEqual(hashlib.sha256(b''.join(skin['frames'])).hexdigest(),expected[character['id']])
+                self.assertNotEqual(skin['front'][0],skin['front'][1])
+                self.assertNotEqual(skin['back'][0],skin['back'][1])
+
     def test_names_preserve_both_save_partitions_and_game_state(self):
         from soullink.identity import renamed_data,name_bytes
         from soullink.save_reader import parse_save,GENERAL_SIZE,PARTITION_SIZE

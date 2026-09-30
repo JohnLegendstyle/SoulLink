@@ -58,6 +58,8 @@ Standardmäßig werden auch wilde Pokémon und gegnerische Trainerteams zufälli
 
 ## Gemeinsam oder getrennt erstellen
 
+Ab 0.15.4 verwendet die Starterwahl automatisch die bereinigte Vorlage aus dem bestätigten regulären Cloud-Save mit 00:58:01 Spielzeit. Die Vorlage benötigt keine `.mln`. Für diesen neueren Startpunkt eine neue Runde erstellen; bestehende Runden mit T1 werden nicht zurückgesetzt. Siehe [Update 0.15.4](releases/v0.15.4.md).
+
 Jede Erstellung erzeugt zwei getrennte Spielerordner. Ihr könnt unabhängig auf euren Rechnern eine Runde erstellen und jeweils euren Spieler starten. Für exakt dieselbe Runde lässt sich der eigene Runden-Ordner zwischen euren Rechnern übertragen. Auf GitHub liegen keine ROM-Dateien. Vorhandene Runden über **Vorhandene Runde öffnen → runde.json** laden. Nach einem App-Neustart wird die letzte Runde wieder angeboten.
 
 ## Anakin und Obi-Wan (ab 0.8.0)
