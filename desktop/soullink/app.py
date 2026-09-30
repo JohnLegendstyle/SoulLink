@@ -330,7 +330,7 @@ class SoulLinkApp(tk.Tk):
             if started:
                 ttk.Label(frame,text='Runde läuft · Auswahl ist geschützt',style='Panel.TLabel',foreground=COLORS['muted']).pack(anchor='w',pady=(5,0))
             else:
-                ttk.Button(frame,text='Auswählen · mittleren Pokéball nehmen · T1 nennen',command=lambda p=player:self.apply_starter_choice(p)).pack(fill='x',pady=(7,0))
+                ttk.Button(frame,text='Auswählen · späteren T1-Start erstellen',command=lambda p=player:self.apply_starter_choice(p)).pack(fill='x',pady=(7,0))
 
     def apply_starter_choice(self,player):
         if self.creating:return
@@ -347,7 +347,7 @@ class SoulLinkApp(tk.Tk):
             if custom_species is None:
                 messagebox.showinfo('Wunsch-Starter','Bitte ein Pokémon aus der Suchliste auswählen.');return
         manifest=Path(str(self.settings.get('manifest','')))
-        self.creating=True;self.create_button.state(['disabled']);self.status_var.set('Starterwahl wird sicher in der ROM festgelegt …')
+        self.creating=True;self.create_button.state(['disabled']);self.status_var.set('Starter und späterer T1-Spielstand werden erstellt …')
         def work():
             try:
                 from .randomizer import choose_starter
@@ -760,7 +760,7 @@ class SoulLinkApp(tk.Tk):
             elif kind == 'starter-selected':
                 self.packs[value.player]=value;self._refresh_player_cards()
                 chosen=value.custom_starter if value.selected_starter==3 else value.starters[value.selected_starter]
-                self.status_var.set(f"{chosen['name']} ist als T1 ausgewählt. Im Spiel den mittleren Pokéball nehmen und den Namen T1 bestätigen; der Rivale erhält einen anderen Starter.")
+                self.status_var.set(f"{chosen['name']} ist als T1 vorbereitet. Das Spiel startet am Punkt der Beispielsave; der Rivale erhält einen anderen Starter.")
             elif kind == 'skins':
                 self.status_var.set('Figuren aktualisiert: Anakin × Obi-Wan mit Lichtschwertern. Euer Spielstand bleibt erhalten.')
             elif kind == 'error':

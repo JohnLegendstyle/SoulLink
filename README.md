@@ -2,9 +2,10 @@
 
 Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, überprüfbaren Start-Spielständen und gemeinsamem Railway-Tracker.
 
-- **[Aktuelle stabile Version: 0.15.2](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.2)**
-- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.15.2/SoulLink-0.15.2-Windows-x64.zip)
+- **[Aktuelle stabile Version: 0.15.3](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.3)**
+- [Windows 64 Bit herunterladen](https://github.com/JohnLegendstyle/SoulLink/releases/download/v0.15.3/SoulLink-0.15.3-Windows-x64.zip)
 - [Versionsübersicht und Änderungsverlauf](CHANGELOG.md)
+- [Update 0.15.3: Beispielsave als späterer T1-Start](releases/v0.15.3.md) – nach der Starterwahl beginnt eine neue oder noch ungespielte Runde am Punkt der bereitgestellten Beispielsave, bereits mit dem gewählten Pokémon als T1. Die private `.mln` selbst wird nicht veröffentlicht.
 - [Update 0.15.2: vollständige Randomisierung, Wunsch-Starter und Kampfhilfe](releases/v0.15.2.md) – wilde Pokémon und Trainerteams werden wirklich gespeichert, der vierte Wunsch-Starter liegt allein im mittleren Ball und die Live-Schwächenanzeige liest den laufenden Kampf korrekt.
 - [Update 0.15.1: neue Anakin-/Obi-Wan-Lauffiguren](releases/v0.15.1.md) – gleichmäßige Körperproportionen, erkennbare Clone-Wars-Kleidung, Haare/Bart und Lichtschwerter in allen Laufrichtungen.
 - [Update 0.15.0: Windows-Kampfhilfe, Starterwahl und Direkt-Update](releases/v0.15.0.md) – Live-Schwächen und Attackenwirkung im Emulator, drei Starter im Launcher, neue kleine Anakin-/Obi-Wan-Figuren und Update im bisherigen App-Ordner.
@@ -18,11 +19,11 @@ Desktop-Launcher für deutsche Pokémon SoulSilver-ROMs mit lokalem Randomizer, 
 - [Spielstart und Bedienung](SPIELSTART.md)
 - [Gemeinsamer Tracker](https://soullink-web-production.up.railway.app)
 
-Der Nutzer liefert seine eigene ROM. Dieses Repository und die Releases enthalten keine Nintendo-ROMs oder BIOS-Dumps. **Beim Update die bestehende Runde öffnen; keine Startspielstände über euren Fortschritt kopieren.** Der Downloadkanal `spielabend` wird fortlaufend ersetzt; nummerierte Releases sind die verlässliche Versionsablage. Version 0.15.2 wird zunächst nur für Windows x64 ausgeliefert; die letzte macOS-Version bleibt 0.14.4.
+Der Nutzer liefert seine eigene ROM. Dieses Repository und die Releases enthalten keine Nintendo-ROMs oder BIOS-Dumps. **Beim Update die bestehende Runde öffnen; keine Startspielstände über euren Fortschritt kopieren.** Der Downloadkanal `spielabend` wird fortlaufend ersetzt; nummerierte Releases sind die verlässliche Versionsablage. Version 0.15.3 wird zunächst nur für Windows x64 ausgeliefert; die letzte macOS-Version bleibt 0.14.4.
 
 ## Desktop
 
-`desktop/` enthält den dunklen Launcher für Windows/macOS, den Randomizer-Adapter und den HGSS-Save-Reader. Drei eindeutige Zufallsstarter, mindestens einer davon legendär oder mysteriös, plus ein frei durchsuchbarer Wunsch-Starter; optional werden wilde Begegnungen und Trainerteams vollständig randomisiert. Der gewählte Starter liegt allein im mittleren Pokéball, die beiden anderen bleiben verschieden, damit der Rivale nicht denselben Starter erhält. Getrennte männliche Trainer Anakin (John) und Obi-Wan (Eddie) starten direkt vor der Auswahl. Jede Runde hat ein neues Verzeichnis. Die letzte Runde kann wieder geöffnet werden. melonDS bleibt der Spielkern und öffnet ein separates Fenster. Das Clone-Wars-Grafikpaket liegt vollständig lokal im Release; es benötigt beim Spielen weder einen Bilddienst noch einen API-Schlüssel. Umfang und Grenzen siehe `desktop/assets/jedi/README.md`.
+`desktop/` enthält den dunklen Launcher für Windows/macOS, den Randomizer-Adapter und den HGSS-Save-Reader. Drei eindeutige Zufallsstarter, mindestens einer davon legendär oder mysteriös, plus ein frei durchsuchbarer Wunsch-Starter; optional werden wilde Begegnungen und Trainerteams vollständig randomisiert. Der gewählte Starter liegt allein im mittleren Pokéball, die beiden anderen bleiben verschieden, damit der Rivale nicht denselben Starter erhält. Nach der Auswahl erzeugt die App aus einer bereinigten Startvorlage einen normalen, geprüften Spielstand: Anakin (John) beziehungsweise Obi-Wan (Eddie) steht am späteren Beispielsave-Punkt und hat das gewählte Pokémon bereits als Level-5-T1 im Team. Die ursprüngliche `.mln`, der ursprüngliche Trainer und das ursprüngliche Pokémon sind nicht enthalten. Jede Runde hat ein neues Verzeichnis. Die letzte Runde kann wieder geöffnet werden. melonDS bleibt der Spielkern und öffnet ein separates Fenster. Das Clone-Wars-Grafikpaket liegt vollständig lokal im Release; es benötigt beim Spielen weder einen Bilddienst noch einen API-Schlüssel. Umfang und Grenzen siehe `desktop/assets/jedi/README.md`.
 
 Python 3.12 mit Tk, Java 21 und ein JDK mit javac/jlink werden zum Bauen benötigt:
 

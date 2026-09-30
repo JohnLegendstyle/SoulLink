@@ -80,9 +80,16 @@ def _valid_battle_metadata(path: Path) -> bool:
         moves = data.get('moves', {})
         pokemon = data.get('pokemon', [])
         species = {item.get('species') for item in pokemon if isinstance(item, dict)}
-        return (data.get('format') == 1 and isinstance(moves, dict) and len(moves) >= 400
+        starter_fields = all(isinstance(item.get('baseStats'), list) and len(item['baseStats']) == 6
+                             and isinstance(item.get('abilities'), list) and len(item['abilities']) == 2
+                             and type(item.get('genderRatio')) is int and type(item.get('growth')) is int
+                             and isinstance(item.get('learnset'), list)
+                             for item in pokemon if isinstance(item, dict))
+        return (data.get('format') == 2 and isinstance(moves, dict) and len(moves) >= 400
+                and all(type(move.get('pp')) is int and move['pp'] > 0
+                        for move in moves.values() if isinstance(move, dict))
                 and isinstance(pokemon, list) and len(species) == 493
-                and species == set(range(1, 494)))
+                and species == set(range(1, 494)) and starter_fields)
     except (OSError, ValueError, TypeError):
         return False
 
@@ -156,10 +163,17 @@ def choose_starter(pack: PlayerPack, index: int, manifest: Path, custom_species:
         detail = (result.stderr or result.stdout).strip().splitlines()[-1:]
         raise RuntimeError(detail[0] if detail else 'Die Starterwahl konnte nicht angewendet werden.')
 
+    from .checkpoint import starter_checkpoint_bytes
+    metadata = json.loads(ensure_battle_metadata(pack.rom).read_text(encoding='utf-8'))
+    poststarter = starter_checkpoint_bytes(
+        runtime_root() / 'checkpoints' / 'poststarter-template.sav.gz', pack.player, species, metadata,
+    )
+
     from .cloud import atomic_write
     from .jedi import rom_identity
     identity_path = pack.rom.with_suffix('.graphics-identity.json')
     previous_identity = identity_path.read_bytes() if identity_path.is_file() else None
+    previous_save = pack.save.read_bytes() if pack.save else None
     cloud_identity = rom_identity(pack.rom)
     try:
         os.replace(pack.rom, rollback)
@@ -170,6 +184,10 @@ def choose_starter(pack: PlayerPack, index: int, manifest: Path, custom_species:
             'current': hashlib.sha256(pack.rom.read_bytes()).hexdigest(),
         }
         atomic_write(identity_path, json.dumps(identity).encode('utf-8'))
+        if pack.save:
+            backup_save = pack.save.with_suffix('.pre-starter.sav')
+            if not backup_save.exists(): atomic_write(backup_save, previous_save)
+            atomic_write(pack.save, poststarter)
         players[0]['selectedStarter'] = index
         players[0]['customStarter'] = custom
         atomic_write(manifest, json.dumps(data, indent=2, ensure_ascii=False).encode('utf-8'))
@@ -180,6 +198,8 @@ def choose_starter(pack: PlayerPack, index: int, manifest: Path, custom_species:
             identity_path.unlink(missing_ok=True)
         else:
             atomic_write(identity_path, previous_identity)
+        if pack.save and previous_save is not None:
+            atomic_write(pack.save, previous_save)
         temporary.unlink(missing_ok=True)
         raise
     rollback.unlink(missing_ok=True)
@@ -263,7 +283,7 @@ def create_round(
     (round_dir / "START.txt").write_text(
         "Soul Link – private Spielrunde\n\n"
         "John spielt Anakin im Ordner Optimus, Eddie spielt Obi-Wan im Ordner Bee. "
-        "Den Starter zuerst im Soul-Link-Launcher auswählen und im Spiel T1 nennen.\n",
+        "Den Starter zuerst im Soul-Link-Launcher auswählen; danach beginnt das Spiel am späteren Beispielsave-Punkt mit T1 im Team.\n",
         encoding="utf-8",
     )
     return round_dir, packs

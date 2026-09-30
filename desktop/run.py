@@ -10,6 +10,8 @@ def self_test():
     from soullink.melonds import find_executable
     from soullink.skins import load_skin
     from soullink.jedi import roster, load_character
+    from soullink.checkpoint import POSTSTARTER_TEMPLATE_SHA256
+    import gzip, hashlib
     import ndspy.texture
     gui=tk.Tk();gui.withdraw();gui.update();gui.destroy()
     for name in ('Optimus','Bee'):
@@ -17,11 +19,13 @@ def self_test():
         state=read_save(runtime_root()/'checkpoints'/f'{name}.sav')
         assert state.trainer==name and state.gender==0 and not state.party
     for character in roster():load_character(character['id'])
+    with gzip.open(runtime_root()/'checkpoints'/'poststarter-template.sav.gz','rb') as source:
+        assert hashlib.sha256(source.read()).hexdigest()==POSTSTARTER_TEMPLATE_SHA256
     subprocess.run([java_binary(),'-version'],check=True,capture_output=True)
     classpath()
     emulator=install_root()/'Emulator'/('melonDS.app' if platform.system()=='Darwin' else 'melonDS.exe')
     executable=find_executable(emulator)
-    assert (install_root()/'Emulator'/'focus-version.txt').read_text().strip()=='focus-0.15.2'
+    assert (install_root()/'Emulator'/'focus-version.txt').read_text().strip()=='focus-0.15.3'
     native=subprocess.run([str(executable),'--help'],capture_output=True,text=True,timeout=20)
     if native.returncode:
         raise RuntimeError(f'Emulator self-test failed ({native.returncode}): {native.stdout}\n{native.stderr}')

@@ -2,6 +2,7 @@ package soullink;
 
 import com.dabomstew.pkrandom.pokemon.Pokemon;
 import com.dabomstew.pkrandom.pokemon.Move;
+import com.dabomstew.pkrandom.pokemon.MoveLearnt;
 import com.dabomstew.pkrandom.pokemon.Encounter;
 import com.dabomstew.pkrandom.pokemon.EncounterSet;
 import com.dabomstew.pkrandom.pokemon.Trainer;
@@ -18,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.ResourceBundle;
 
@@ -44,26 +46,42 @@ public final class StarterRandomizer {
     }
 
     private static void writeBattleData(Gen4RomHandler handler, Path destination) throws Exception {
-        StringBuilder json = new StringBuilder("{\"format\":1,\"moves\":{");
+        StringBuilder json = new StringBuilder("{\"format\":2,\"moves\":{");
         boolean first = true;
         for (Move move : handler.getMoves()) {
-            if (move == null || move.number <= 0 || move.number > 1000 || move.type == null) continue;
+            if (move == null || move.number <= 0 || move.number > 1000) continue;
             if (!first) json.append(',');
             first = false;
             json.append('"').append(move.number).append("\":{\"name\":")
                 .append(jsonString(move.name)).append(",\"type\":")
-                .append(jsonString(move.type.name())).append(",\"category\":")
+                .append(jsonString(move.type == null ? "UNKNOWN" : move.type.name())).append(",\"category\":")
                 .append(jsonString(move.category == null ? "STATUS" : move.category.name()))
-                .append(",\"power\":").append(Math.max(0, move.power)).append('}');
+                .append(",\"power\":").append(Math.max(0, move.power))
+                .append(",\"pp\":").append(Math.max(0, move.pp)).append('}');
         }
         json.append("},\"pokemon\":[");
+        Map<Integer,List<MoveLearnt>> movesLearnt = handler.getMovesLearnt();
         first = true;
         for (Pokemon pokemon : handler.getPokemon()) {
             if (pokemon == null || pokemon.number <= 0 || pokemon.number > 493) continue;
             if (!first) json.append(',');
             first = false;
             json.append("{\"species\":").append(pokemon.number).append(",\"name\":")
-                .append(jsonString(pokemon.name)).append('}');
+                .append(jsonString(pokemon.name))
+                .append(",\"baseStats\":[").append(pokemon.hp).append(',').append(pokemon.attack)
+                .append(',').append(pokemon.defense).append(',').append(pokemon.speed)
+                .append(',').append(pokemon.spatk).append(',').append(pokemon.spdef).append(']')
+                .append(",\"abilities\":[").append(pokemon.ability1).append(',').append(pokemon.ability2).append(']')
+                .append(",\"genderRatio\":").append(pokemon.genderRatio)
+                .append(",\"growth\":").append(pokemon.growthCurve.toByte())
+                .append(",\"learnset\":[");
+            boolean firstMove = true;
+            for (MoveLearnt learnt : movesLearnt.getOrDefault(pokemon.number, List.of())) {
+                if (!firstMove) json.append(',');
+                firstMove = false;
+                json.append('[').append(learnt.level).append(',').append(learnt.move).append(']');
+            }
+            json.append("]}");
         }
         json.append("]}\n");
         Files.createDirectories(destination.toAbsolutePath().normalize().getParent());

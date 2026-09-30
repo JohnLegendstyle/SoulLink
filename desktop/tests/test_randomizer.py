@@ -34,6 +34,7 @@ class RandomizerTests(unittest.TestCase):
                 [{'species': 1, 'name': 'Bisasam'}, {'species': 4, 'name': 'Glumanda'},
                  {'species': 7, 'name': 'Schiggy'}],
             )
+            metadata = root / 'battle.json'; metadata.write_text('{}')
 
             def run(command, **_kwargs):
                 Path(command[-2]).write_bytes(b'rom-with-selected-starter')
@@ -42,6 +43,8 @@ class RandomizerTests(unittest.TestCase):
             with patch('soullink.randomizer.read_save', return_value=SimpleNamespace(owned=[])), \
                     patch('soullink.randomizer.java_binary', return_value='java'), \
                     patch('soullink.randomizer.classpath', return_value='classes'), \
+                    patch('soullink.randomizer.ensure_battle_metadata', return_value=metadata), \
+                    patch('soullink.checkpoint.starter_checkpoint_bytes', return_value=b'post-starter-save'), \
                     patch('soullink.randomizer.subprocess.run', side_effect=run):
                 selected = choose_starter(pack, 1, manifest)
 
@@ -53,6 +56,8 @@ class RandomizerTests(unittest.TestCase):
             self.assertEqual(identity['current'], hashlib.sha256(rom.read_bytes()).hexdigest())
             self.assertEqual(rom.with_suffix('.starter-options.nds').read_bytes(), b'jedi-randomized-rom')
             self.assertFalse(rom.with_suffix('.starter-rollback.nds').exists())
+            self.assertEqual(save.read_bytes(),b'post-starter-save')
+            self.assertEqual(save.with_suffix('.pre-starter.sav').read_bytes(),b'pre-starter')
 
     def test_custom_starter_is_saved_as_fourth_choice(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -76,6 +81,7 @@ class RandomizerTests(unittest.TestCase):
                  {'species': 340, 'name': 'Welsar'}],
                 catalog=catalog,
             )
+            metadata = root / 'battle.json'; metadata.write_text('{}')
 
             def run(command, **_kwargs):
                 self.assertEqual(command[-1], '25')
@@ -85,6 +91,8 @@ class RandomizerTests(unittest.TestCase):
             with patch('soullink.randomizer.read_save', return_value=SimpleNamespace(owned=[])), \
                     patch('soullink.randomizer.java_binary', return_value='java'), \
                     patch('soullink.randomizer.classpath', return_value='classes'), \
+                    patch('soullink.randomizer.ensure_battle_metadata', return_value=metadata), \
+                    patch('soullink.checkpoint.starter_checkpoint_bytes', return_value=b'post-starter-save'), \
                     patch('soullink.randomizer.subprocess.run', side_effect=run):
                 selected = choose_starter(pack, 3, manifest, custom_species=25)
 
@@ -94,6 +102,7 @@ class RandomizerTests(unittest.TestCase):
             self.assertEqual(data['selectedStarter'], 3)
             self.assertEqual(data['customStarter'], {'species': 25, 'name': 'Pikachu'})
             self.assertEqual(rom.read_bytes(), b'randomized-adventure-with-pikachu-in-middle')
+            self.assertEqual(save.read_bytes(),b'post-starter-save')
 
     def test_java_adapter_preserves_two_distinct_other_starters_and_adventure(self):
         source = (Path(__file__).parents[1] / 'randomizer' / 'StarterRandomizer.java').read_text()
@@ -102,6 +111,9 @@ class RandomizerTests(unittest.TestCase):
         self.assertIn('new Randomizer(settings, handler, bundle, false).randomize', source)
         self.assertIn('wildSaved', source)
         self.assertIn('trainersSaved', source)
+        self.assertIn('"format\\\":2', source)
+        self.assertIn('getMovesLearnt()', source)
+        self.assertIn('growthCurve.toByte()', source)
 
     def test_started_round_cannot_change_starter(self):
         with tempfile.TemporaryDirectory() as temp:

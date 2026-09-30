@@ -1,6 +1,12 @@
 # Versionen und Änderungen
 
-## [0.15.2 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.2)
+## [0.15.3 – aktuelle stabile Version](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.3)
+
+30.09.2026 · Windows x64.
+
+Der Punkt der bereitgestellten melonDS-Beispielsave ist nun als bereinigte Startvorlage eingebaut. Die ursprüngliche `.mln` sowie deren ursprüngliche Trainer-/Pokémon-Identität sind nicht im Repository oder Release enthalten. Nach der Auswahl eines Zufalls- oder Wunsch-Starters erzeugt die App einen normalen SoulSilver-Spielstand am exakten Beispielsave-Punkt. Der gewählte Starter steht bereits auf Level 5 als `T1` im Team; Art, Werte, Fähigkeit, Geschlecht und Startattacken werden passend zur randomisierten ROM neu berechnet. John heißt Anakin, Eddie Obi-Wan. Der Rivale behält ein anderes Starter-Pokémon. Dies gilt für neu erstellte Runden; bestehende Fortschritte werden nicht verändert. [Update-Hinweise](releases/v0.15.3.md).
+
+## [0.15.2](https://github.com/JohnLegendstyle/SoulLink/releases/tag/v0.15.2)
 
 30.09.2026 · Windows x64.
 

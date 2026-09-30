@@ -94,6 +94,26 @@ def _decrypt(raw: bytes) -> bytearray:
     return data
 
 
+def _encrypt(plain: bytes | bytearray) -> bytes:
+    """Return a Gen-IV encrypted Pokémon from canonical logical block order."""
+    if len(plain) not in (136, 236):
+        raise ValueError("Ein Pokémon-Datensatz muss 136 oder 236 Bytes groß sein.")
+    data = bytearray(plain)
+    pid = _u32(data, 0)
+    checksum = sum(struct.unpack('<64H', data[8:136])) & 0xFFFF
+    struct.pack_into('<H', data, 6, checksum)
+    order = BLOCK_POSITION[((pid >> 13) & 31) % 24]
+    logical = [bytes(data[8 + i * 32:40 + i * 32]) for i in range(4)]
+    physical = [b''] * 4
+    for logical_index, physical_slot in enumerate(order):
+        physical[physical_slot] = logical[logical_index]
+    data[8:136] = b''.join(physical)
+    _crypt(data, 8, 136, checksum)
+    if len(data) > 136:
+        _crypt(data, 136, len(data), pid)
+    return bytes(data)
+
+
 def _text(data: bytes | bytearray, offset: int, chars: int) -> str:
     result = []
     for i in range(chars):
